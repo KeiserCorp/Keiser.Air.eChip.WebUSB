@@ -1,11 +1,13 @@
-import doIt from '../src/index'
+import EChip from '../src/echip'
+
+const echip = new EChip()
 
 document.addEventListener('DOMContentLoaded', event => {
-  let connectButton = document.querySelector('#connect')
+  const connectButton = document.querySelector('#connect')
 
   if (connectButton) {
-    connectButton.addEventListener('click', function () {
-      console.log(doIt('Jerk'))
+    connectButton.addEventListener('click', async () => {
+      await echip.requestPermission()
     })
   }
 })

@@ -19,7 +19,7 @@ export default class EChip {
     let devices = await navigator.usb.getDevices()
     devices.forEach(device => {
       if (this.matchesTarget(device)) {
-        console.log('EChip Reader Already Connected')
+        console.log('EChip Reader already connected.')
         this.connect(device)
       }
     })
@@ -36,7 +36,7 @@ export default class EChip {
         })
         this.connect(device)
       } catch (error) {
-        console.log('EChip Reader Permission Denied')
+        throw new Error('EChip Reader permission denied.')
       }
     }
   }
@@ -50,7 +50,7 @@ export default class EChip {
 
   private attached (event: Event) {
     if (event instanceof USBConnectionEvent && this.matchesTarget(event.device)) {
-      console.log('EChip Reader Connected')
+      console.log('EChip Reader connected.')
       this.connect(event.device)
     }
   }
@@ -60,7 +60,7 @@ export default class EChip {
       && this.matchesTarget(event.device)
       && this.targetDevice
       && this.targetDevice.isSameDevice(event.device)) {
-      console.log('EChip Reader Disconnected')
+      console.log('EChip Reader disconnected.')
       this.close()
     }
   }

@@ -5,6 +5,7 @@
     "module": "es6",
     "declaration": true,
     "outDir": "./dist/",
+    "sourceMap": true,
     "newLine": "lf",
     "strict": true,
     "noImplicitAny": true,

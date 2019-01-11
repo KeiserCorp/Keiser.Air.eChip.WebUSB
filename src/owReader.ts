@@ -4,7 +4,7 @@ export default class OWReader {
   constructor (device: USBDevice) {
     this.coreDevice = device
 
-    this.initialize()
+    // this.initialize()
   }
 
   /*****************************************
@@ -34,8 +34,12 @@ export default class OWReader {
   *****************************************/
 
   async initialize () {
-    await this.coreDevice.open()
-    await this.mapEndpoints()
+    try {
+      await this.coreDevice.open()
+    } catch (error) {
+      throw new Error('USB Device cannot be opened.\n[Check driver installation.]')
+    }
+    // await this.mapEndpoints()
     // this.startTransfer()
   }
 
