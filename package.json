@@ -1,0 +1,17 @@
+{
+	"name": "keiser-echip-webusb",
+	"version": "0.0.0",
+	"description": "Keiser Air eChip WebUSB Library",
+	"main": "./src/main.js",
+	"author": "Keiser Corporation",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB.git"
+	},
+	"bugs": {
+		"url": "https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB/issues"
+	},
+	"homepage": "https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB#readme",
+	"devDependencies": {}
+}
