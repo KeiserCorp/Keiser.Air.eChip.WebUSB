@@ -1,14 +1,18 @@
 {
   "compileOnSave": true,
   "compilerOptions": {
-    "target": "es2015",
-    "module": "commonjs",
+    "target": "es5",
+    "module": "es6",
     "declaration": true,
-    "outDir": "./dist",
+    "outDir": "./dist/",
     "newLine": "lf",
     "strict": true,
     "noImplicitAny": true,
-    "noUnusedLocals": true
+    "noUnusedLocals": true,
+    "lib": [
+      "dom",
+      "es2015"
+    ]
   },
   "include": [
     "src",
