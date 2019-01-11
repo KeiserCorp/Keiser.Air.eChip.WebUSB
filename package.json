@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Keiser Air eChip WebUSB Library",
   "main": "/dist/index.js",
-  "types": "/dist/index.d.ts",
+  "types": "/dist/echip.d.ts",
   "files": [
     "dist/**/*"
   ],
@@ -18,10 +18,9 @@
   },
   "homepage": "https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB#readme",
   "scripts": {
-    "build": "webpack --config webpack/prod.config.js",
-    "pretest": "tslint --project tsconfig.json",
-    "test": "echo done",
-    "start": "webpack-dev-server --config webpack/dev.config.js"
+    "lint": "tslint --project tsconfig.json",
+    "start": "webpack-dev-server --config webpack/dev.config.js",
+    "build": "webpack --config webpack/prod.config.js"
   },
   "devDependencies": {
     "clean-webpack-plugin": "^1.0.0",

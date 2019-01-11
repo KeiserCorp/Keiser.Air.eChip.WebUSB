@@ -1,9 +1,10 @@
 const path = require('path')
 const CleanWebpackPlugin = require('clean-webpack-plugin')
+const DIST = path.resolve(__dirname, '../dist')
 
 module.exports = {
   mode: 'production',
-  entry: './src/index.ts',
+  entry: './src/echip.ts',
   module: {
     rules: [
       {
@@ -18,12 +19,12 @@ module.exports = {
   },
 
   plugins: [
-    new CleanWebpackPlugin('./dist', {
+    new CleanWebpackPlugin(DIST, {
       root: path.resolve(__dirname, '../'),
     })
   ],
   output: {
     filename: 'index.js',
-    path: path.resolve(__dirname, '../dist')
+    path: DIST
   }
 }
