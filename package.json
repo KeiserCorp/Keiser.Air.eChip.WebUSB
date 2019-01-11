@@ -1,17 +1,27 @@
 {
-	"name": "keiser-echip-webusb",
-	"version": "0.0.0",
-	"description": "Keiser Air eChip WebUSB Library",
-	"main": "./src/main.js",
-	"author": "Keiser Corporation",
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB.git"
-	},
-	"bugs": {
-		"url": "https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB/issues"
-	},
-	"homepage": "https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB#readme",
-	"devDependencies": {}
+  "name": "keiser-echip-webusb",
+  "version": "0.0.0",
+  "description": "Keiser Air eChip WebUSB Library",
+  "main": "./src/main.js",
+  "author": "Keiser Corporation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB/issues"
+  },
+  "homepage": "https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB#readme",
+  "scripts": {
+    "build": "tsc",
+    "pretest": "tslint --project tsconfig.json",
+    "test": "echo done"
+  },
+  "devDependencies": {
+    "tslint-config-standard": "^8.0.1",
+    "typescript": "^3.2.2",
+    "tslint": "^5.12.1"
+  },
+  "dependencies": {}
 }
