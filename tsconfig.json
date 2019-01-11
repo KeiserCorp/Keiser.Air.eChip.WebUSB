@@ -3,11 +3,12 @@
   "compilerOptions": {
     "target": "es2015",
     "module": "es6",
+    "outDir": "./dist/types",
     "declaration": true,
-    "outDir": "./dist/",
     "sourceMap": true,
-    "newLine": "lf",
     "strict": true,
+    "newLine": "lf",
+    "removeComments": true,
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "lib": [
@@ -20,6 +21,7 @@
     "./types"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "./dist"
   ]
 }
