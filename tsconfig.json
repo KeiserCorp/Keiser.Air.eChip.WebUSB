@@ -1,16 +1,20 @@
 {
+  "compileOnSave": true,
   "compilerOptions": {
     "target": "es2015",
-    "module": "es2015",
+    "module": "commonjs",
     "declaration": true,
     "outDir": "./dist",
     "newLine": "lf",
     "strict": true,
     "noImplicitAny": true,
-    "noUnusedLocals": true,
-    "typeRoots": [
-      "./types",
-      "./node_modules/@types"
-    ]
-  }
+    "noUnusedLocals": true
+  },
+  "include": [
+    "src",
+    "./types"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

@@ -1,11 +1,11 @@
-import EChip from '../src/echip/index'
+import doIt from '../src/index'
 
 document.addEventListener('DOMContentLoaded', event => {
   let connectButton = document.querySelector('#connect')
 
   if (connectButton) {
     connectButton.addEventListener('click', function () {
-      console.log(EChip.name)
+      console.log(doIt('Jerk'))
     })
   }
 })

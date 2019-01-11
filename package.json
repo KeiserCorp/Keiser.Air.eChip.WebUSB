@@ -2,7 +2,11 @@
   "name": "keiser-echip-webusb",
   "version": "0.0.0",
   "description": "Keiser Air eChip WebUSB Library",
-  "main": "./dist/index.js",
+  "main": "/dist/index.js",
+  "types": "/dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
   "author": "Keiser Corporation",
   "license": "MIT",
   "repository": {
@@ -17,7 +21,7 @@
     "build": "tsc",
     "pretest": "tslint --project tsconfig.json",
     "test": "echo done",
-    "start": "tsc test/test.ts && http-server test"
+    "start": "npm run build && http-server test"
   },
   "devDependencies": {
     "http-server": "^0.11.1",
