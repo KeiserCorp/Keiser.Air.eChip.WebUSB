@@ -20,6 +20,7 @@
   "scripts": {
     "lint": "tslint --project tsconfig.json",
     "start": "webpack-dev-server --config webpack/dev.config.js",
+    "stage": "webpack-dev-server --config webpack/stage.config.js",
     "build": "webpack --config webpack/prod.config.js"
   },
   "devDependencies": {

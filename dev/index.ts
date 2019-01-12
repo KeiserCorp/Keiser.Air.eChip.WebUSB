@@ -1,18 +1,18 @@
-import EChip from '../src/echip'
+import EChipReader from '../src/echipReader'
 
-const echip = new EChip()
+const echipReader = new EChipReader()
 
-echip.onConnectionChange((e) => {
+echipReader.onConnectionChange((e) => {
   console.log('Connected: ' + e.connected)
 })
 
 document.addEventListener('DOMContentLoaded', event => {
-  const connectButton = document.querySelector('#open')
+  const connectButton = document.querySelector('#connect')
 
   if (connectButton) {
     connectButton.addEventListener('click', async () => {
       try {
-        await echip.open()
+        await echipReader.connect()
       } catch (error) {
         console.error('Caught Error:', error)
       }
