@@ -1,10 +1,17 @@
 import OWReader from './owReader'
+import Logger from './logger'
+import { TypedEvent, Listener } from './typedEvent'
 
 const ECHIP_READER_VENDOR_ID = 0x04FA
 const ECHIP_READER_PRODUCT_ID = 0x2490
 
+export interface ConnectionEvent {
+  connected: boolean
+}
+
 export default class EChip {
-  targetDevice: OWReader | null
+  private onConnectChange = new TypedEvent<ConnectionEvent>()
+  private targetDevice: OWReader | null
 
   constructor () {
     this.targetDevice = null
@@ -15,17 +22,23 @@ export default class EChip {
     this.checkDevices()
   }
 
-  async checkDevices () {
-    let devices = await navigator.usb.getDevices()
-    devices.forEach(device => {
-      if (this.matchesTarget(device)) {
-        console.log('EChip Reader already connected.')
-        this.connect(device)
-      }
-    })
+  async open () {
+    await this.requestPermission()
   }
 
-  async requestPermission () {
+  async close () {
+    if (this.targetDevice) {
+      await this.targetDevice.disconnect()
+      this.targetDevice = null
+      this.onConnectChange.emit({ connected: false })
+    }
+  }
+
+  onConnectionChange (listener: Listener<ConnectionEvent>) {
+    this.onConnectChange.on(listener)
+  }
+
+  private async requestPermission () {
     if (!this.targetDevice) {
       try {
         let device = await navigator.usb.requestDevice({
@@ -36,21 +49,27 @@ export default class EChip {
         })
         this.connect(device)
       } catch (error) {
+        Logger.error('EChip Reader permission denied.')
         throw new Error('EChip Reader permission denied.')
       }
     }
   }
 
-  close () {
-    if (this.targetDevice) {
-      this.targetDevice.disconnect()
-      this.targetDevice = null
-    }
+  private async checkDevices () {
+    let devices = await navigator.usb.getDevices()
+    devices.some(device => {
+      if (this.matchesTarget(device)) {
+        Logger.info('EChip Reader already connected.')
+        this.connect(device)
+        return true
+      }
+      return false
+    })
   }
 
   private attached (event: Event) {
-    if (event instanceof USBConnectionEvent && this.matchesTarget(event.device)) {
-      console.log('EChip Reader connected.')
+    if (event instanceof USBConnectionEvent && !this.targetDevice && this.matchesTarget(event.device)) {
+      Logger.info('EChip Reader connected.')
       this.connect(event.device)
     }
   }
@@ -60,13 +79,14 @@ export default class EChip {
       && this.matchesTarget(event.device)
       && this.targetDevice
       && this.targetDevice.isSameDevice(event.device)) {
-      console.log('EChip Reader disconnected.')
+      Logger.info('EChip Reader disconnected.')
       this.close()
     }
   }
 
   private connect (device: USBDevice) {
     this.targetDevice = new OWReader(device)
+    this.onConnectChange.emit({ connected: true })
   }
 
   private matchesTarget (device: USBDevice) {
