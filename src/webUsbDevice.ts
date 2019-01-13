@@ -1,5 +1,4 @@
 import { TypedEvent, Listener } from './typedEvent'
-import Logger from './logger'
 
 interface ConnectionEvent {
   connected: boolean
@@ -8,7 +7,7 @@ interface ConnectionEvent {
 export default class WebUSBDevice {
   private vendorId: number
   private productId: number
-  private targetDevice: USBDevice | null = null
+  protected targetDevice: USBDevice | null = null
   private onConnectChange = new TypedEvent<ConnectionEvent>()
 
   constructor (vendorId: number, productId: number) {
@@ -45,7 +44,6 @@ export default class WebUSBDevice {
       })
       this.connected(device)
     } catch (error) {
-      Logger.error('USB Device permission denied.')
       throw new Error('USB Device permission denied.')
     }
   }
@@ -78,18 +76,21 @@ export default class WebUSBDevice {
     }
   }
 
-  private connected (device: USBDevice) {
+  protected async connected (device: USBDevice) {
     this.targetDevice = device
-    Logger.info('USB Device connected.')
+    try {
+      await this.targetDevice.open()
+    } catch (error) {
+      throw new Error('USB Device cannot be opened.\n[Check driver installation.]')
+    }
     this.onConnectChange.emit({ connected: true })
   }
 
-  private async disconnected () {
-    if (this.targetDevice) {
-      this.targetDevice.close()
+  protected async disconnected () {
+    if (this.targetDevice && this.targetDevice.opened) {
+      await this.targetDevice.close()
     }
     this.targetDevice = null
-    Logger.info('USB Device disconnected.')
     this.onConnectChange.emit({ connected: false })
   }
 
