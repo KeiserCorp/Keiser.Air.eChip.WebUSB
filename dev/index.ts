@@ -4,6 +4,7 @@ const echipReader = new EChipReader()
 
 echipReader.onConnectionChange((e) => {
   console.log('Connected: ' + e.connected)
+  console.log(e.echipReaderDevice)
 })
 
 document.addEventListener('DOMContentLoaded', event => {

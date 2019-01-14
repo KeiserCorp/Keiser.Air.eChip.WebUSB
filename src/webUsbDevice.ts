@@ -1,14 +1,7 @@
-import { TypedEvent, Listener } from './typedEvent'
-
-interface ConnectionEvent {
-  connected: boolean
-}
-
 export default class WebUSBDevice {
   private vendorId: number
   private productId: number
   protected targetDevice: USBDevice | null = null
-  private onConnectChange = new TypedEvent<ConnectionEvent>()
 
   constructor (vendorId: number, productId: number) {
     this.vendorId = vendorId
@@ -20,6 +13,10 @@ export default class WebUSBDevice {
     this.checkDevices()
   }
 
+  get isConnected () {
+    return !(this.targetDevice === null)
+  }
+
   async connect () {
     if (!this.targetDevice) {
       await this.requestPermission()
@@ -28,10 +25,6 @@ export default class WebUSBDevice {
 
   async disconnect () {
     this.disconnected()
-  }
-
-  onConnectionChange (listener: Listener<ConnectionEvent>) {
-    this.onConnectChange.on(listener)
   }
 
   private async requestPermission () {
@@ -83,15 +76,15 @@ export default class WebUSBDevice {
     } catch (error) {
       throw new Error('USB Device cannot be opened.\n[Check driver installation.]')
     }
-    this.onConnectChange.emit({ connected: true })
   }
 
   protected async disconnected () {
     if (this.targetDevice && this.targetDevice.opened) {
-      await this.targetDevice.close()
+      try {
+        await this.targetDevice.close()
+      } catch (error) { /*Ignore error*/ }
     }
     this.targetDevice = null
-    this.onConnectChange.emit({ connected: false })
   }
 
   private matchesTarget (device: USBDevice) {
