@@ -333,55 +333,97 @@ export default class OWDevice {
     const offsetLSB = (offset & 0xFF00) >> 8
     const endingOffset = data.length - 1
 
+    const keyWriteToScratch = async (keyRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) => {
+      const keyWriteData = async (data: Uint8Array, offset: number = 0) => {
+        const size = Math.min(BULK_SIZE, data.length - offset)
+        const sendData = new Uint8Array(size)
+        for (let x = 0; x < size; x++) {
+          sendData[x] = data[offset + x]
+        }
+        await this.write(sendData)
+        if ((data.length - (offset + size)) > 0) {
+          await keyWriteData(data, offset + size)
+        }
+      }
+
+      await this.reset()
+      await this.romMatch(keyRom, overdrive)
+      const writeCommand = new Uint8Array([0x0F, offsetMSB, offsetLSB])
+      await this.write(writeCommand, true)
+      await keyWriteData(data)
+      await this.reset()
+      await this.romMatch(keyRom, overdrive)
+      const readCommand = new Uint8Array([0xAA])
+      await this.write(readCommand)
+      const result = await this.read(data.length)
+      await this.clearByte()
+      if (result.length !== data.length || !result.every((e, i) => e === data[i])) {
+        await keyWriteToScratch(keyRom, offset, data, overdrive)
+      }
+    }
+
     await this.setSpeed(false)
-    await this.keyWriteToScratch(keyRom, offset, data, overdrive)
+    await keyWriteToScratch(keyRom, offset, data, overdrive)
     await this.reset()
     await this.romMatch(keyRom, overdrive)
     const writeCommand = new Uint8Array([0x55, offsetMSB, offsetLSB, endingOffset])
     await this.write(writeCommand, true)
   }
 
-  private async keyWriteToScratch (keyRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) {
-    const offsetMSB = (offset & 0xFF)
-    const offsetLSB = (offset & 0xFF00) >> 8
-
-    await this.reset()
-    await this.romMatch(keyRom, overdrive)
-    const writeCommand = new Uint8Array([0x0F, offsetMSB, offsetLSB])
-    await this.write(writeCommand, true)
-    await this.keyWriteData(data)
-    await this.reset()
-    await this.romMatch(keyRom, overdrive)
-    const readCommand = new Uint8Array([0xAA])
-    await this.write(readCommand)
-    const result = await this.read(data.length)
-    await this.clearByte()
-    if (result.length !== data.length || !result.every((e, i) => e === data[i])) {
-      await this.keyWriteToScratch(keyRom, offset, data, overdrive)
-    }
-  }
-
-  private async keyWriteData (data: Uint8Array, offset: number = 0) {
-    const size = Math.min(BULK_SIZE, data.length - offset)
-    const sendData = new Uint8Array(size)
-    for (let x = 0; x < size; x++) {
-      sendData[x] = data[offset + x]
-    }
-    await this.write(sendData)
-    if ((data.length - (offset + size)) > 0) {
-      await this.keyWriteData(data, offset + size)
-    }
-  }
-
   private async keyWriteAll (keyRom: Uint8Array, data: Array<Uint8Array> = [], overdrive: boolean = false) {
-    await this.keyWriteAllOffset(keyRom, 0, data, overdrive)
+    const keyWriteAllOffset = async (keyRom: Uint8Array, page: number = 0, data: Array<Uint8Array> = [], overdrive: boolean = false) => {
+      const offset = page * 32
+      await this.keyWrite(keyRom, offset, data[page], overdrive)
+      if (data.length > page + 1) {
+        await keyWriteAllOffset(keyRom, page + 1, data, overdrive)
+      }
+    }
+
+    await keyWriteAllOffset(keyRom, 0, data, overdrive)
   }
 
-  private async keyWriteAllOffset (keyRom: Uint8Array, page: number = 0, data: Array<Uint8Array> = [], overdrive: boolean = false) {
-    const offset = page * 32
-    await this.keyWrite(keyRom, offset, data[page], overdrive)
-    if (data.length > page + 1) {
-      await this.keyWriteAllOffset(keyRom, page + 1, data, overdrive)
+  private async keyWriteDiff (keyRom: Uint8Array, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) {
+    const keyWriteDiffOffset = async (keyRom: Uint8Array, page: number = 0, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) => {
+      const offset = page * 32
+      if (newData[page].length !== oldData[page].length || !newData[page].every((e,i) => e === oldData[page][i])) {
+        await this.keyWrite(keyRom, offset, newData[page], overdrive)
+      }
+      if (newData.length > (page + 1)) {
+        await keyWriteDiffOffset(keyRom, page + 1, newData, oldData, overdrive)
+      }
     }
+
+    if (oldData.length < newData.length) {
+      oldData = await this.keyReadAll(keyRom, overdrive)
+    }
+    await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
+  }
+
+  private async keyReadAll (keyRom: Uint8Array, overdrive: boolean = false) {
+    const keyReadPage = async (page: Uint8Array, index: number = 0) => {
+      let result = await this.read(BULK_SIZE)
+      result.forEach(e => page[index++] = e)
+      if (index < page.length) {
+        await keyReadPage(page, index)
+      }
+    }
+
+    const keyReadMemory = async (memory: Array<Uint8Array> = new Array(256), pageIndex: number = 0) => {
+      memory[pageIndex] = new Uint8Array(32)
+      let buffer = (new Uint8Array(32)).fill(0xFF)
+      await this.write(buffer)
+      await keyReadPage(memory[pageIndex])
+      if (pageIndex < memory.length - 1) {
+        await keyReadMemory(memory, pageIndex + 1)
+      }
+      return memory
+    }
+
+    await this.setSpeed(false)
+    await this.reset()
+    await this.romMatch(keyRom, overdrive)
+    const writeCommand = new Uint8Array([0xF0, 0x00, 0x00])
+    await this.write(writeCommand, true)
+    return keyReadMemory()
   }
 }
