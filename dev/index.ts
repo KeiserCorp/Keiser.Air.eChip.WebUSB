@@ -1,10 +1,11 @@
 import EChipReader from '../src/echipReader'
 
 const echipReader = new EChipReader()
+let echipReaderDevices = []
 
-echipReader.onConnectionChange((e) => {
-  console.log('Connected: ' + e.connected)
-  console.log(e.echipReaderDevice)
+echipReader.onConnect((echipReaderDevice) => {
+  console.log(echipReaderDevice)
+  echipReaderDevices.push(echipReaderDevice)
 })
 
 document.addEventListener('DOMContentLoaded', event => {

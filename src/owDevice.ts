@@ -1,20 +1,5 @@
 import crc81wire from 'crc/crc81wire'
 
-const keyRomToHexString = function (key: Uint8Array) {
-  const hexChar = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' ]
-  let keyString = ''
-  const clonedKey = Array
-    .prototype
-    .slice
-    .call(key)
-  clonedKey
-    .reverse()
-    .map(function (dataByte) {
-      keyString += hexChar[(dataByte >> 4) & 0x0F] + hexChar[dataByte & 0x0F]
-    })
-  return keyString
-}
-
 const BULK_SIZE = 64
 
 class StateRegister {
@@ -45,13 +30,16 @@ interface ROMSearchObject {
 }
 
 export default class OWDevice {
+  private searching: boolean = false
   private usbDevice: USBDevice
   private interrupt: USBEndpoint
   private bulkIn: USBEndpoint
   private bulkOut: USBEndpoint
+  private onDetectKey: (keyRom: Uint8Array) => void
 
-  constructor (usbDevice: USBDevice) {
+  constructor (usbDevice: USBDevice, onDetectKey: (keyId: Uint8Array) => void = (k: Uint8Array) => { return }) {
     this.usbDevice = usbDevice
+    this.onDetectKey = onDetectKey
     const altInterface = this.usbDevice.configurations[0].interfaces[0].alternates[1]
     this.interrupt = altInterface.endpoints[0]
     this.bulkIn = altInterface.endpoints[1]
@@ -70,17 +58,30 @@ export default class OWDevice {
     } catch (error) {
       throw new Error('1-Wire Device interface cannot be claimed.')
     }
-
-    await this.keySearch()
     return true
   }
 
-  async keySearch () {
+  async startSearch () {
+    if (!this.searching) {
+      this.searching = true
+      this.keySearch()
+    }
+  }
+
+  async close () {
+    this.searching = false
+    if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
+      await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
+    }
+    await this.usbDevice.close()
+  }
+
+  private async keySearch () {
     let result = await this.romSearch()
-    console.log(result)
+    this.onDetectKey(result.key)
     while (!result.lastDevice) {
       result = await result.next()
-      console.log(result)
+      this.onDetectKey(result.key)
     }
   }
 
@@ -246,10 +247,6 @@ export default class OWDevice {
     return this.romCommand(keyRom, overdrive)
   }
 
-  // private async romSkip (overdrive: boolean = false) {
-  //   return this.romCommand(null, overdrive)
-  // }
-
   private async romSearch (lastDiscrepancy: number = 0) {
     await this.setSpeed(false)
     await this.reset()
@@ -269,7 +266,7 @@ export default class OWDevice {
     })
 
     return {
-      key: { raw: searchResult.romId, string: keyRomToHexString(searchResult.romId) },
+      key: searchResult.romId,
       lastDevice: searchResult.lastDevice,
       next: async () => this.romSearch(searchResult.lastDiscrepancy)
     }
@@ -370,7 +367,7 @@ export default class OWDevice {
     await this.write(writeCommand, true)
   }
 
-  private async keyWriteAll (keyRom: Uint8Array, data: Array<Uint8Array> = [], overdrive: boolean = false) {
+  async keyWriteAll (keyRom: Uint8Array, data: Array<Uint8Array> = [], overdrive: boolean = false) {
     const keyWriteAllOffset = async (keyRom: Uint8Array, page: number = 0, data: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
       await this.keyWrite(keyRom, offset, data[page], overdrive)
@@ -382,7 +379,7 @@ export default class OWDevice {
     await keyWriteAllOffset(keyRom, 0, data, overdrive)
   }
 
-  private async keyWriteDiff (keyRom: Uint8Array, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) {
+  async keyWriteDiff (keyRom: Uint8Array, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) {
     const keyWriteDiffOffset = async (keyRom: Uint8Array, page: number = 0, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
       if (newData[page].length !== oldData[page].length || !newData[page].every((e,i) => e === oldData[page][i])) {
@@ -399,7 +396,7 @@ export default class OWDevice {
     await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
   }
 
-  private async keyReadAll (keyRom: Uint8Array, overdrive: boolean = false) {
+  async keyReadAll (keyRom: Uint8Array, overdrive: boolean = false) {
     const keyReadPage = async (page: Uint8Array, index: number = 0) => {
       let result = await this.read(BULK_SIZE)
       result.forEach(e => page[index++] = e)
