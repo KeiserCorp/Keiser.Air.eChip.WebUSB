@@ -15,6 +15,8 @@ const keyRomToHexString = function (key: Uint8Array) {
   return keyString
 }
 
+const BULK_SIZE = 64
+
 class StateRegister {
   detectKey: boolean
   data: Uint8Array
@@ -144,7 +146,7 @@ export default class OWDevice {
     await this.detectShort()
   }
 
-  private async write (data: Uint8Array, clearWire: boolean) {
+  private async write (data: Uint8Array, clearWire: boolean = false) {
     try {
       let res = await this.usbDevice.transferOut(this.bulkIn.endpointNumber, data.buffer)
       if (res.status !== 'ok') {
@@ -204,56 +206,48 @@ export default class OWDevice {
     return (await this.read(1))[0]
   }
 
-  // private async clearByte () {
-  //   await this.read(1)
-  // }
+  private async clearByte () {
+    await this.read(1)
+  }
 
-  // private async romCommand (keyRom: Uint8Array | null = null, overdrive: boolean = false) {
-  //   let index
-  //   let transferDataBuffer = new Uint8Array(8).buffer
-  //   if (keyRom) {
-  //     transferDataBuffer = keyRom.buffer
-  //     if (overdrive) {
-  //       index = 0x0069
-  //     } else {
-  //       index = 0x0055
-  //     }
-  //   } else {
-  //     if (overdrive) {
-  //       index = 0x003C
-  //     } else {
-  //       index = 0x00CC
-  //     }
-  //   }
+  private async romCommand (keyRom: Uint8Array | null = null, overdrive: boolean = false) {
+    let index
+    let transferDataBuffer = new Uint8Array(8).buffer
+    if (keyRom) {
+      transferDataBuffer = keyRom.buffer
+      if (overdrive) {
+        index = 0x0069
+      } else {
+        index = 0x0055
+      }
+    } else {
+      if (overdrive) {
+        index = 0x003C
+      } else {
+        index = 0x00CC
+      }
+    }
 
-  //   let res = await this.usbDevice.controlTransferOut({
-  //     requestType: 'vendor',
-  //     recipient: 'device',
-  //     request: 0x01,
-  //     value: 0x0065,
-  //     index: index
-  //   })
-  //   if (res.status !== 'ok') {
-  //     throw new Error('1-Wire Device rom transfer failed.')
-  //   }
-  //   await this.setSpeed(overdrive)
-  //   res = await this.usbDevice.transferOut(this.bulkIn.endpointNumber, transferDataBuffer)
-  // }
+    let res = await this.usbDevice.controlTransferOut({
+      requestType: 'vendor',
+      recipient: 'device',
+      request: 0x01,
+      value: 0x0065,
+      index: index
+    })
+    if (res.status !== 'ok') {
+      throw new Error('1-Wire Device rom transfer failed.')
+    }
+    await this.setSpeed(overdrive)
+    res = await this.usbDevice.transferOut(this.bulkIn.endpointNumber, transferDataBuffer)
+  }
 
-  // private async romMatch (keyRom: Uint8Array) {
-  //   return this.romCommand(keyRom, false)
-  // }
+  private async romMatch (keyRom: Uint8Array, overdrive: boolean = false) {
+    return this.romCommand(keyRom, overdrive)
+  }
 
-  // private async romMatchOverdrive (keyRom: Uint8Array) {
-  //   return this.romCommand(keyRom, true)
-  // }
-
-  // private async romSkip () {
-  //   return this.romCommand()
-  // }
-
-  // private async romSkipOverdrive () {
-  //   return this.romCommand(null, true)
+  // private async romSkip (overdrive: boolean = false) {
+  //   return this.romCommand(null, overdrive)
   // }
 
   private async romSearch (lastDiscrepancy: number = 0) {
@@ -331,6 +325,63 @@ export default class OWDevice {
 
     } else {
       return searchObject
+    }
+  }
+
+  private async keyWrite (keyRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) {
+    const offsetMSB = (offset & 0xFF)
+    const offsetLSB = (offset & 0xFF00) >> 8
+    const endingOffset = data.length - 1
+
+    await this.setSpeed(false)
+    await this.keyWriteToScratch(keyRom, offset, data, overdrive)
+    await this.reset()
+    await this.romMatch(keyRom, overdrive)
+    const writeCommand = new Uint8Array([0x55, offsetMSB, offsetLSB, endingOffset])
+    await this.write(writeCommand, true)
+  }
+
+  private async keyWriteToScratch (keyRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) {
+    const offsetMSB = (offset & 0xFF)
+    const offsetLSB = (offset & 0xFF00) >> 8
+
+    await this.reset()
+    await this.romMatch(keyRom, overdrive)
+    const writeCommand = new Uint8Array([0x0F, offsetMSB, offsetLSB])
+    await this.write(writeCommand, true)
+    await this.keyWriteData(data)
+    await this.reset()
+    await this.romMatch(keyRom, overdrive)
+    const readCommand = new Uint8Array([0xAA])
+    await this.write(readCommand)
+    const result = await this.read(data.length)
+    await this.clearByte()
+    if (result.length !== data.length || !result.every((e, i) => e === data[i])) {
+      await this.keyWriteToScratch(keyRom, offset, data, overdrive)
+    }
+  }
+
+  private async keyWriteData (data: Uint8Array, offset: number = 0) {
+    const size = Math.min(BULK_SIZE, data.length - offset)
+    const sendData = new Uint8Array(size)
+    for (let x = 0; x < size; x++) {
+      sendData[x] = data[offset + x]
+    }
+    await this.write(sendData)
+    if ((data.length - (offset + size)) > 0) {
+      await this.keyWriteData(data, offset + size)
+    }
+  }
+
+  private async keyWriteAll (keyRom: Uint8Array, data: Array<Uint8Array> = [], overdrive: boolean = false) {
+    await this.keyWriteAllOffset(keyRom, 0, data, overdrive)
+  }
+
+  private async keyWriteAllOffset (keyRom: Uint8Array, page: number = 0, data: Array<Uint8Array> = [], overdrive: boolean = false) {
+    const offset = page * 32
+    await this.keyWrite(keyRom, offset, data[page], overdrive)
+    if (data.length > page + 1) {
+      await this.keyWriteAllOffset(keyRom, page + 1, data, overdrive)
     }
   }
 }
