@@ -5,7 +5,7 @@ const DIST = path.resolve(__dirname, '../dist')
 
 module.exports = {
   mode: 'production',
-  entry: './src/echipReader.ts',
+  entry: './src/echipReaderWatcher.ts',
   module: {
     rules: [
       {

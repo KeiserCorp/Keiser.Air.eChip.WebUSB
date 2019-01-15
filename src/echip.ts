@@ -12,6 +12,7 @@ export default class EChip extends EChipConnection {
     this.echipId = echipId
     this.owDevice = owDevice
     this.doIt()
+    Logger.info('EChip detected.')
   }
 
   get id () {
@@ -19,12 +20,13 @@ export default class EChip extends EChipConnection {
   }
 
   private async doIt () {
+    console.log(this.echipId)
     let data = await this.owDevice.keyReadAll(this.echipId)
     console.log(data)
   }
 
   protected async dispose () {
-    super.dispose()
+    await super.dispose()
     Logger.info('EChip disposed.')
   }
 }

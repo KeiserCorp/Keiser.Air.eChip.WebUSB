@@ -19,7 +19,8 @@
   "homepage": "https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB#readme",
   "scripts": {
     "lint": "tslint --project tsconfig.json",
-    "start": "webpack-dev-server --config webpack/dev.config.js",
+    "dev": "webpack-dev-server --config webpack/dev.config.js",
+    "start": "npm run dev",
     "stage": "webpack-dev-server --config webpack/stage.config.js",
     "build": "webpack --config webpack/prod.config.js"
   },

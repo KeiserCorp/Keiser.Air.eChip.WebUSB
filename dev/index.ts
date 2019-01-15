@@ -1,11 +1,10 @@
-import EChipReader from '../src/echipReader'
+import EChipReaderWatcher from '../src/echipReaderWatcher'
 
-const echipReader = new EChipReader()
-let echipReaderDevices = []
+const echipReaderWatcher = new EChipReaderWatcher()
+let EChipReaders = []
 
-echipReader.onConnect((echipReaderDevice) => {
-  console.log(echipReaderDevice)
-  echipReaderDevices.push(echipReaderDevice)
+echipReaderWatcher.onConnect((echipReader) => {
+  EChipReaders.push(echipReader)
 })
 
 document.addEventListener('DOMContentLoaded', event => {
@@ -14,9 +13,9 @@ document.addEventListener('DOMContentLoaded', event => {
   if (connectButton) {
     connectButton.addEventListener('click', async () => {
       try {
-        await echipReader.connect()
+        await echipReaderWatcher.start()
       } catch (error) {
-        console.error('Caught Error:', error)
+        console.error(error.message)
       }
     })
   }

@@ -1,40 +1,46 @@
-import WebUSBDevice from './webUsbDevice'
 import Logger from './logger'
-import EChipReaderDevice from './echipReaderDevice'
-import { TypedEvent, Listener } from './typedEvent'
+import EChip from './echip'
+import OWDevice from './owDevice'
+import EChipConnection from './echipConnection'
+import { TypedEvent, Listener, Disposable } from './typedEvent'
 
-const ECHIP_READER_VENDOR_ID = 0x04FA
-const ECHIP_READER_PRODUCT_ID = 0x2490
-
-export default class EChipReader extends WebUSBDevice {
-  private onConnectEvent = new TypedEvent<EChipReaderDevice>()
+export default class EChipReader extends EChipConnection {
+  readonly claimed: Promise<boolean>
+  private owDevice: OWDevice
+  private onEChipDetectEvent = new TypedEvent<EChip>()
   private onDisconnectEvent = new TypedEvent<null>()
 
-  constructor () {
-    super(ECHIP_READER_VENDOR_ID, ECHIP_READER_PRODUCT_ID)
-  }
-
-  onConnect (listener: Listener<EChipReaderDevice>) {
-    return this.onConnectEvent.on(listener)
+  constructor (usbDevice: USBDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
+    super(onDisconnect)
+    this.owDevice = new OWDevice(usbDevice, this.echipDetect)
+    this.claimed = this.owDevice.claim()
+    Logger.info('EChip Reader connected.')
   }
 
   onDisconnect (listener: Listener<null>) {
     return this.onDisconnectEvent.on(listener)
   }
 
-  protected async connected (device: USBDevice) {
-    await super.connected(device)
-    Logger.info('EChip Reader connected.')
-    if (this.targetDevice) {
-      const echipReaderDevice = new EChipReaderDevice(this.targetDevice, (l: Listener<null>) => this.onDisconnect(l))
-      await echipReaderDevice.claimed
-      this.onConnectEvent.emit(echipReaderDevice)
-    }
+  onEChipDetect (listener: Listener<EChip>) {
+    this.onEChipDetectEvent.on(listener)
+    this.owDevice.startSearch()
   }
 
-  protected async disconnected () {
-    await super.disconnected()
-    Logger.info('EChip Reader disconnected.')
-    this.onDisconnectEvent.emit(null)
+  private echipDetect (echipId: Uint8Array) {
+
+    const echip = new EChip(echipId, this.owDevice, (l: Listener<null>) => this.onDisconnect(l))
+    this.onEChipDetectEvent.emit(echip)
   }
+
+  protected disconnected () {
+    this.onDisconnectEvent.emit(null)
+    super.disconnected()
+  }
+
+  protected async dispose () {
+    await this.owDevice.close()
+    super.dispose()
+    Logger.info('EChip Reader disconnected.')
+  }
+
 }

@@ -17,14 +17,10 @@ export default class WebUSBDevice {
     return !(this.targetDevice === null)
   }
 
-  async connect () {
+  async start () {
     if (!this.targetDevice) {
       await this.requestPermission()
     }
-  }
-
-  async disconnect () {
-    this.disconnected()
   }
 
   private async requestPermission () {

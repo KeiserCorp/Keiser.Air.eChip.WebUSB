@@ -70,10 +70,11 @@ export default class OWDevice {
 
   async close () {
     this.searching = false
-    if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
-      await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
-    }
-    await this.usbDevice.close()
+    try {
+      if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
+        await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
+      }
+    } catch (error) { /*Ignore error*/ }
   }
 
   private async keySearch () {

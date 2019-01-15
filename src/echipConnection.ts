@@ -12,11 +12,11 @@ export default class EChipConnection {
     return this.disposed
   }
 
-  protected async disconnected () {
+  protected disconnected () {
     this.dispose()
   }
 
-  protected async dispose () {
+  protected dispose () {
     if (this.onDisconnectListener) {
       this.onDisconnectListener.dispose()
       this.onDisconnectListener = null
