@@ -2,7 +2,8 @@
   "compileOnSave": true,
   "compilerOptions": {
     "target": "es2015",
-    "module": "es6",
+    "module": "esnext",
+    "moduleResolution": "node",
     "outDir": "./dist/types",
     "declaration": true,
     "sourceMap": true,
@@ -11,17 +12,22 @@
     "removeComments": true,
     "noImplicitAny": true,
     "noUnusedLocals": true,
+    "typeRoots": [
+      "./types",
+      "./node_modules/@types"
+    ],
     "lib": [
       "dom",
       "es2015"
     ]
   },
   "include": [
-    "src",
-    "./types"
+    "./src/**/*",
+    "./types",
+    "./node_modules/@types"
   ],
   "exclude": [
-    "node_modules",
+    "./node_modules",
     "./dist"
   ]
 }
