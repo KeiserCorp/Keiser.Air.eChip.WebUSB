@@ -1,4 +1,4 @@
-import { crc81wire } from 'crc'
+import crc81wire from 'crc/crc81wire'
 
 const keyRomToHexString = function (key: Uint8Array) {
   const hexChar = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' ]
@@ -20,7 +20,7 @@ class StateRegister {
   data: Uint8Array
   commCommandBufferStatus: number
 
-  constructor (dataView: DataView)  {
+  constructor (dataView: DataView) {
     const dataArray = new Uint8Array(dataView.buffer)
     this.commCommandBufferStatus = dataArray[11]
     this.detectKey = dataArray[16] === 165
