@@ -3,13 +3,14 @@ import { Mutex } from 'async-mutex'
 
 const BULK_SIZE = 64
 const SEARCH_INTERVAL = 500
+const TIMEOUT_INTERVAL = 500
 
 const isValidKeyId = (keyId: Uint8Array) => {
   return keyId[0] === 0x0C
 }
 
-const timeoutPromise = () => {
-  return new Promise(r => setTimeout(() => { r() }, SEARCH_INTERVAL))
+const timeoutPromise: () => Promise<void> = () => {
+  return new Promise(r => setTimeout(() => { r() }, TIMEOUT_INTERVAL))
 }
 
 class StateRegister {
@@ -97,7 +98,7 @@ export default class OWDevice {
         try {
           await Promise.race([
             this.keySearch(),
-            timeoutPromise()
+            timeoutPromise().then(() => { console.log('T/O') })
           ])
         } catch (error) {/*Ignore error*/}
         releaseMutex()
@@ -445,11 +446,14 @@ export default class OWDevice {
       return memory
     }
 
+    let releaseMutex = await this.mutex.acquire()
     await this.setSpeed(false)
     await this.reset()
     await this.romMatch(keyRom, overdrive)
     const writeCommand = new Uint8Array([0xF0, 0x00, 0x00])
     await this.write(writeCommand, true)
-    return keyReadMemory()
+    let memory = keyReadMemory()
+    releaseMutex()
+    return memory
   }
 }
