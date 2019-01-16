@@ -8,6 +8,10 @@ const isValidKeyId = (keyId: Uint8Array) => {
   return keyId[0] === 0x0C
 }
 
+const timeoutPromise = () => {
+  return new Promise(r => setTimeout(() => { r() }, SEARCH_INTERVAL))
+}
+
 class StateRegister {
   detectKey: boolean
   data: Uint8Array
@@ -93,7 +97,7 @@ export default class OWDevice {
         try {
           await Promise.race([
             this.keySearch(),
-            new Promise(r => setTimeout(() => { r() }, SEARCH_INTERVAL))
+            timeoutPromise()
           ])
         } catch (error) {/*Ignore error*/}
         releaseMutex()
