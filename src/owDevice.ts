@@ -4,6 +4,10 @@ import { Mutex } from 'async-mutex'
 const BULK_SIZE = 64
 const SEARCH_INTERVAL = 500
 
+const isValidKeyId = (keyId: Uint8Array) => {
+  return keyId[0] === 0x0C
+}
+
 class StateRegister {
   detectKey: boolean
   data: Uint8Array
@@ -73,25 +77,26 @@ export default class OWDevice {
 
   async close () {
     this.searching = false
-    try {
-      if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
-        let releaseMutex = await this.mutex.acquire()
+    if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
+      let releaseMutex = await this.mutex.acquire()
+      try {
         await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
-        releaseMutex()
-      }
-    } catch (error) { /*Ignore error*/ }
+      } catch (error) { /*Ignore error*/ }
+      releaseMutex()
+    }
   }
 
   private awaitKey () {
     setTimeout(async () => {
-      try {
-        if (this.searching) {
-          let releaseMutex = await this.mutex.acquire()
-          await this.keySearch()
-          releaseMutex()
-          this.awaitKey()
-        }
-      } catch (error) {
+      if (this.searching) {
+        let releaseMutex = await this.mutex.acquire()
+        try {
+          await Promise.race([
+            this.keySearch(),
+            new Promise(r => setTimeout(() => { r() }, SEARCH_INTERVAL))
+          ])
+        } catch (error) {/*Ignore error*/}
+        releaseMutex()
         this.awaitKey()
       }
     }, SEARCH_INTERVAL)
@@ -100,13 +105,13 @@ export default class OWDevice {
   private async keySearch () {
     let validIds = []
     let result = await this.romSearch()
-    if (result.key[7] === 143) {
+    if (isValidKeyId(result.key)) {
       validIds.push(result.key)
     }
 
     while (!result.lastDevice) {
       result = await result.next()
-      if (result.key[7] === 143) {
+      if (isValidKeyId(result.key)) {
         validIds.push(result.key)
       }
     }
@@ -244,17 +249,9 @@ export default class OWDevice {
     let transferDataBuffer = new Uint8Array(8).buffer
     if (keyRom) {
       transferDataBuffer = keyRom.buffer
-      if (overdrive) {
-        index = 0x0069
-      } else {
-        index = 0x0055
-      }
+      index = overdrive ? 0x0069 : 0x0055
     } else {
-      if (overdrive) {
-        index = 0x003C
-      } else {
-        index = 0x00CC
-      }
+      index = overdrive ? 0x003C : 0x00CC
     }
 
     let res = await this.usbDevice.controlTransferOut({
@@ -300,10 +297,10 @@ export default class OWDevice {
     }
   }
 
-  private async romSubSearch (searchObject: ROMSearchObject): Promise<ROMSearchObject> {
+  private async romSubSearch (searchObject: ROMSearchObject): Promise < ROMSearchObject > {
     searchObject.idBit = await this.readBit()
     searchObject.cmpIdBit = await this.readBit()
-    if (searchObject.idBit !== 1 || searchObject.cmpIdBit !== 1) {
+    if (searchObject .idBit !== 1 || searchObject.cmpIdBit !== 1) {
       if (searchObject.idBit !== searchObject.cmpIdBit) {
         searchObject.searchDirection = searchObject.idBit
       } else {
@@ -395,7 +392,7 @@ export default class OWDevice {
     await this.write(writeCommand, true)
   }
 
-  async keyWriteAll (keyRom: Uint8Array, data: Array<Uint8Array> = [], overdrive: boolean = false) {
+  async keyWriteAll (keyRom: Uint8Array, data: Array < Uint8Array > = [], overdrive: boolean = false) {
     const keyWriteAllOffset = async (keyRom: Uint8Array, page: number = 0, data: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
       await this.keyWrite(keyRom, offset, data[page], overdrive)
@@ -407,7 +404,7 @@ export default class OWDevice {
     await keyWriteAllOffset(keyRom, 0, data, overdrive)
   }
 
-  async keyWriteDiff (keyRom: Uint8Array, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) {
+  async keyWriteDiff (keyRom: Uint8Array, newData: Array < Uint8Array > = [], oldData: Array < Uint8Array > = [], overdrive: boolean = false) {
     const keyWriteDiffOffset = async (keyRom: Uint8Array, page: number = 0, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
       if (newData[page].length !== oldData[page].length || !newData[page].every((e,i) => e === oldData[page][i])) {

@@ -1,7 +1,7 @@
 export default class WebUSBDevice {
-  private vendorId: number
-  private productId: number
-  protected targetDevice: USBDevice | null = null
+  private readonly vendorId: number
+  private readonly productId: number
+  protected connectedDevices: Array<USBDevice > = []
 
   constructor (vendorId: number, productId: number) {
     this.vendorId = vendorId
@@ -14,26 +14,27 @@ export default class WebUSBDevice {
   }
 
   get isConnected () {
-    return !(this.targetDevice === null)
+    return !(this.connectedDevices.length > 0)
   }
 
   async start () {
-    if (!this.targetDevice) {
-      await this.requestPermission()
-    }
+    await this.requestPermission()
   }
 
   private async requestPermission () {
+    let device
     try {
-      let device = await navigator.usb.requestDevice({
+      device = await navigator.usb.requestDevice({
         filters: [{
           vendorId: this.vendorId,
           productId: this.productId
         }]
       })
-      this.connected(device)
     } catch (error) {
       throw new Error('USB Device permission denied.')
+    }
+    if (device) {
+      this.connected(device)
     }
   }
 
@@ -49,38 +50,37 @@ export default class WebUSBDevice {
   }
 
   private attached (event: Event) {
-    if (event instanceof USBConnectionEvent
-      && !this.targetDevice
-      && this.matchesTarget(event.device)) {
+    if (event instanceof USBConnectionEvent && this.matchesTarget(event.device)) {
       this.connected(event.device)
     }
   }
 
   private detached (event: Event) {
-    if (event instanceof USBConnectionEvent
-      && this.matchesTarget(event.device)
-      && this.targetDevice
-      && this.isTargetDevice(event.device)) {
-      this.disconnected()
+    if (event instanceof USBConnectionEvent && this.matchesTarget(event.device) && this.isConnectedDevices(event.device)) {
+      this.disconnected(event.device)
     }
   }
 
   protected async connected (device: USBDevice) {
-    this.targetDevice = device
+    if (this.isConnectedDevices(device)) {
+      throw new Error('USB Device already connected.')
+    }
     try {
-      await this.targetDevice.open()
+      await device.open()
+      this.connectedDevices.push(device)
     } catch (error) {
       throw new Error('USB Device cannot be opened.\n[Check driver installation.]')
     }
   }
 
-  protected async disconnected () {
-    if (this.targetDevice && this.targetDevice.opened) {
+  protected async disconnected (device: USBDevice) {
+    let index = this.connectedDevices.indexOf(device)
+    if (index >= 0 && device.opened) {
       try {
-        await this.targetDevice.close()
+        await device.close()
       } catch (error) { /*Ignore error*/ }
+      this.connectedDevices.splice(index, 1)
     }
-    this.targetDevice = null
   }
 
   private matchesTarget (device: USBDevice) {
@@ -88,7 +88,7 @@ export default class WebUSBDevice {
       device.productId === this.productId
   }
 
-  private isTargetDevice (device: USBDevice) {
-    return this.targetDevice && this.targetDevice.serialNumber === device.serialNumber
+  private isConnectedDevices (device: USBDevice) {
+    return this.connectedDevices.indexOf(device) >= 0
   }
 }
