@@ -9,10 +9,11 @@ export default class EChipReader extends EChipConnection {
   private owDevice: OWDevice
   private onEChipDetectEvent = new TypedEvent<EChip>()
   private onDisconnectEvent = new TypedEvent<null>()
+  private activeKeys: Map<string,EChip> = new Map()
 
   constructor (usbDevice: USBDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(onDisconnect)
-    this.owDevice = new OWDevice(usbDevice, (e: Uint8Array) => this.echipDetected(e))
+    this.owDevice = new OWDevice(usbDevice, (e: Array<Uint8Array>) => this.echipsDetected(e))
     this.claimed = this.owDevice.claim()
     Logger.info('EChip Reader connected.')
     this.owDevice.startSearch()
@@ -26,9 +27,24 @@ export default class EChipReader extends EChipConnection {
     this.onEChipDetectEvent.on(listener)
   }
 
-  private echipDetected (echipId: Uint8Array) {
-    const echip = new EChip(echipId, this.owDevice, (l: Listener<null>) => this.onDisconnect(l))
-    this.onEChipDetectEvent.emit(echip)
+  private echipsDetected (echipIds: Array<Uint8Array>) {
+    let validIds: Array<string> = []
+    echipIds.forEach(echipId => {
+      let echipIdString = echipId.join()
+      validIds.push(echipIdString)
+      if (!this.activeKeys.has(echipIdString)) {
+        let echip = new EChip(echipId, this.owDevice, (l: Listener<null>) => this.onDisconnect(l))
+        this.activeKeys.set(echipIdString, echip)
+        this.onEChipDetectEvent.emit(echip)
+      }
+    })
+
+    this.activeKeys.forEach((echip, echipIdString) => {
+      if (!validIds.includes(echipIdString)) {
+        echip.destroy()
+        this.activeKeys.delete(echipIdString)
+      }
+    })
   }
 
   protected disconnected () {

@@ -7,7 +7,6 @@ let EChips = []
 echipReaderWatcher.onConnect((echipReader) => {
   EChipReaders.push(echipReader)
   echipReader.onEChipDetect((echip) => {
-    console.log(echip)
     EChips.push(echip)
   })
 })

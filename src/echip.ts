@@ -11,19 +11,24 @@ export default class EChip extends EChipConnection {
     super(onDisconnect)
     this.echipId = echipId
     this.owDevice = owDevice
-    Logger.info('EChip detected.')
+    Logger.info('EChip detected: ' + this.id)
   }
 
   get id () {
     return this.echipId.reduce((s,d) => s += ((d >> 4) & 0x0F).toString(16) + (d & 0x0F).toString(16), '').split('').reverse().join('')
   }
 
-  async something () {
+  destroy () {
+    this.disconnected()
+  }
+
+  placeholder () {
+    // This function is purely to keep the linter happy becuase owDevice isn't used yet
     this.owDevice.close()
   }
 
   protected async dispose () {
     await super.dispose()
-    Logger.info('EChip disposed.')
+    Logger.info('EChip disposed: ' + this.id)
   }
 }

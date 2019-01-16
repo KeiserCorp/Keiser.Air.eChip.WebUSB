@@ -1,6 +1,5 @@
 import crc81wire from 'crc/crc81wire'
 import { Mutex } from 'async-mutex'
-import EChip from './echip'
 
 const BULK_SIZE = 64
 const SEARCH_INTERVAL = 500
@@ -39,12 +38,11 @@ export default class OWDevice {
   private interrupt: USBEndpoint
   private bulkIn: USBEndpoint
   private bulkOut: USBEndpoint
-  private onDetectKey: (keyRom: Uint8Array) => void
-  private knownKeyIds: Array<string> = []
+  private onDetectKeys: (keyRom: Array<Uint8Array>) => void
 
-  constructor (usbDevice: USBDevice, onDetectKey: (keyId: Uint8Array) => void = (k: Uint8Array) => { return }) {
+  constructor (usbDevice: USBDevice, onDetectKeys: (keyId: Array<Uint8Array>) => void = (k: Array<Uint8Array>) => { return }) {
     this.usbDevice = usbDevice
-    this.onDetectKey = onDetectKey
+    this.onDetectKeys = onDetectKeys
     const altInterface = this.usbDevice.configurations[0].interfaces[0].alternates[1]
     this.interrupt = altInterface.endpoints[0]
     this.bulkIn = altInterface.endpoints[1]
@@ -94,21 +92,19 @@ export default class OWDevice {
   }
 
   private async keySearch () {
-    // (╯°□°）╯︵ ┻━┻
-    let result
-    let foundRoms = []
-    do {
-      result = await this.romSearch()
+    let validIds = []
+    let result = await this.romSearch()
+    if (result.key[7] === 143) {
+      validIds.push(result.key)
+    }
+
+    while (!result.lastDevice) {
+      result = await result.next()
       if (result.key[7] === 143) {
-        foundRoms.push(result.key)
+        validIds.push(result.key)
       }
-    } while (!result.lastDevice)
-    foundRoms.forEach(id => {
-      if (!this.knownKeyIds.includes(idString)) {
-        this.onDetectKey(id)
-        this.knownKeyIds.push(idString)
-      }
-    })
+    }
+    this.onDetectKeys(validIds)
   }
 
   private async deviceStatus () {
@@ -395,12 +391,12 @@ export default class OWDevice {
 
   async keyWriteAll (keyRom: Uint8Array, data: Array<Uint8Array> = [], overdrive: boolean = false) {
     const keyWriteAllOffset = async (keyRom: Uint8Array, page: number = 0, data: Array<Uint8Array> = [], overdrive: boolean = false) => {
-    const offset = page * 32
-    await this.keyWrite(keyRom, offset, data[page], overdrive)
-    if (data.length > page + 1) {
-      await keyWriteAllOffset(keyRom, page + 1, data, overdrive)
+      const offset = page * 32
+      await this.keyWrite(keyRom, offset, data[page], overdrive)
+      if (data.length > page + 1) {
+        await keyWriteAllOffset(keyRom, page + 1, data, overdrive)
+      }
     }
-  }
 
     await keyWriteAllOffset(keyRom, 0, data, overdrive)
   }
