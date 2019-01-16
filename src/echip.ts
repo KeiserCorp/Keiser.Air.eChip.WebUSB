@@ -15,7 +15,7 @@ export default class EChip extends EChipConnection {
   }
 
   get id () {
-    return this.echipId.reduce((s,d) => s += ((d >> 4) & 0x0F).toString(16) + (d & 0x0F).toString(16), '').split('').reverse().join('')
+    return this.echipId.reduce((s,d) => s += (d & 0x0F).toString(16) + ((d >> 4) & 0x0F).toString(16), '').split('').reverse().join('')
   }
 
   destroy () {
