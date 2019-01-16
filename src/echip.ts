@@ -11,7 +11,7 @@ export default class EChip extends EChipConnection {
     super(onDisconnect)
     this.echipId = echipId
     this.owDevice = owDevice
-    Logger.info('EChip detected: ' + this.id)
+    Logger.info('EChip connected: ' + this.id)
   }
 
   get id () {
@@ -29,6 +29,6 @@ export default class EChip extends EChipConnection {
 
   protected async dispose () {
     await super.dispose()
-    Logger.info('EChip disposed: ' + this.id)
+    Logger.info('EChip disconnected: ' + this.id)
   }
 }

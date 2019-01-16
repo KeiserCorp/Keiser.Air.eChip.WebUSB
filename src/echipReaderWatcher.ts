@@ -13,6 +13,10 @@ export default class EChipReaderWatcher extends WebUSBDevice {
     super(ECHIP_READER_VENDOR_ID, ECHIP_READER_PRODUCT_ID)
   }
 
+  stop () {
+    this.disconnected()
+  }
+
   onConnect (listener: Listener<EChipReader>) {
     return this.onConnectEvent.on(listener)
   }

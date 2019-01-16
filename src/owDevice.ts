@@ -75,17 +75,23 @@ export default class OWDevice {
     this.searching = false
     try {
       if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
+        let releaseMutex = await this.mutex.acquire()
         await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
+        releaseMutex()
       }
     } catch (error) { /*Ignore error*/ }
   }
 
   private awaitKey () {
     setTimeout(async () => {
-      if (this.searching) {
-        let releaseMutex = await this.mutex.acquire()
-        await this.keySearch()
-        releaseMutex()
+      try {
+        if (this.searching) {
+          let releaseMutex = await this.mutex.acquire()
+          await this.keySearch()
+          releaseMutex()
+          this.awaitKey()
+        }
+      } catch (error) {
         this.awaitKey()
       }
     }, SEARCH_INTERVAL)
