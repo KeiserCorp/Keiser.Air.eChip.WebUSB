@@ -12,9 +12,10 @@ export default class EChipReader extends EChipConnection {
 
   constructor (usbDevice: USBDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(onDisconnect)
-    this.owDevice = new OWDevice(usbDevice, this.echipDetect)
+    this.owDevice = new OWDevice(usbDevice, (e: Uint8Array) => this.echipDetected(e))
     this.claimed = this.owDevice.claim()
     Logger.info('EChip Reader connected.')
+    this.owDevice.startSearch()
   }
 
   onDisconnect (listener: Listener<null>) {
@@ -23,11 +24,9 @@ export default class EChipReader extends EChipConnection {
 
   onEChipDetect (listener: Listener<EChip>) {
     this.onEChipDetectEvent.on(listener)
-    this.owDevice.startSearch()
   }
 
-  private echipDetect (echipId: Uint8Array) {
-
+  private echipDetected (echipId: Uint8Array) {
     const echip = new EChip(echipId, this.owDevice, (l: Listener<null>) => this.onDisconnect(l))
     this.onEChipDetectEvent.emit(echip)
   }

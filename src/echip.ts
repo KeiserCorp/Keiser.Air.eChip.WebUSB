@@ -11,7 +11,6 @@ export default class EChip extends EChipConnection {
     super(onDisconnect)
     this.echipId = echipId
     this.owDevice = owDevice
-    this.doIt()
     Logger.info('EChip detected.')
   }
 
@@ -19,10 +18,8 @@ export default class EChip extends EChipConnection {
     return this.echipId.reduce((s,d) => s += ((d >> 4) & 0x0F).toString(16) + (d & 0x0F).toString(16), '').split('').reverse().join('')
   }
 
-  private async doIt () {
-    console.log(this.echipId)
-    let data = await this.owDevice.keyReadAll(this.echipId)
-    console.log(data)
+  async something () {
+    this.owDevice.close()
   }
 
   protected async dispose () {
