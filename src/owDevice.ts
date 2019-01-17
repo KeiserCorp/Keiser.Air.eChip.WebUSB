@@ -3,13 +3,14 @@ import { Mutex } from 'async-mutex'
 
 const BULK_SIZE = 64
 const SEARCH_INTERVAL = 500
+const TIMEOUT_INTERVAL = 500
 
 const isValidKeyId = (keyId: Uint8Array) => {
   return keyId[0] === 0x0C
 }
 
-const timeoutPromise = () => {
-  return new Promise(r => setTimeout(() => { r() }, SEARCH_INTERVAL))
+const timeoutPromise: () => Promise<void> = () => {
+  return new Promise(r => setTimeout(() => { r() }, TIMEOUT_INTERVAL))
 }
 
 class StateRegister {
@@ -152,37 +153,37 @@ export default class OWDevice {
   }
 
   private async reset () {
-    try {
-      let res = await this.usbDevice.controlTransferOut({
-        requestType: 'vendor',
-        recipient: 'device',
-        request: 0x01,
-        value: 0x0C4B,
-        index: 0x0001
-      })
-      if (res.status !== 'ok') {
-        throw new Error('1-Wire Device reset request failed.')
-      }
-      await this.detectShort()
-    } catch (error) {
-      await this.deviceReset()
-    }
-  }
-
-  private async deviceReset () {
-    await this.usbDevice.reset()
+    // try {
     let res = await this.usbDevice.controlTransferOut({
       requestType: 'vendor',
       recipient: 'device',
-      request: 0x00,
-      value: 0x00,
-      index: 0x00
+      request: 0x01,
+      value: 0x0C4B,
+      index: 0x0001
     })
     if (res.status !== 'ok') {
-      throw new Error('1-Wire Device reset failed.')
+      throw new Error('1-Wire Device reset request failed.')
     }
     await this.detectShort()
+    // } catch (error) {
+    //   await this.deviceReset()
+    // }
   }
+
+  // private async deviceReset () {
+  //   await this.usbDevice.reset()
+  //   let res = await this.usbDevice.controlTransferOut({
+  //     requestType: 'vendor',
+  //     recipient: 'device',
+  //     request: 0x00,
+  //     value: 0x00,
+  //     index: 0x00
+  //   })
+  //   if (res.status !== 'ok') {
+  //     throw new Error('1-Wire Device reset failed.')
+  //   }
+  //   await this.detectShort()
+  // }
 
   private async write (data: Uint8Array, clearWire: boolean = false) {
     try {
@@ -219,15 +220,11 @@ export default class OWDevice {
   }
 
   private async read (byteCount: number) {
-    try {
-      let res = await this.usbDevice.transferIn(this.bulkOut.endpointNumber, byteCount)
-      if (res.status !== 'ok' || typeof res.data === 'undefined') {
-        throw new Error()
-      }
-      return new Uint8Array(res.data.buffer)
-    } catch (error) {
+    let res = await this.usbDevice.transferIn(this.bulkOut.endpointNumber, byteCount)
+    if (res.status !== 'ok' || typeof res.data === 'undefined') {
       throw new Error('1-Wire Device read failed.')
     }
+    return new Uint8Array(res.data.buffer)
   }
 
   private async readBit () {
@@ -445,11 +442,16 @@ export default class OWDevice {
       return memory
     }
 
-    await this.setSpeed(false)
-    await this.reset()
-    await this.romMatch(keyRom, overdrive)
-    const writeCommand = new Uint8Array([0xF0, 0x00, 0x00])
-    await this.write(writeCommand, true)
-    return keyReadMemory()
+    let releaseMutex = await this.mutex.acquire()
+    try {
+      await this.setSpeed(false)
+      await this.reset()
+      await this.romMatch(keyRom, overdrive)
+      const writeCommand = new Uint8Array([0xF0, 0x00, 0x00])
+      await this.write(writeCommand, true)
+      return await keyReadMemory()
+    } finally {
+      releaseMutex()
+    }
   }
 }
