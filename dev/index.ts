@@ -29,13 +29,13 @@ document.addEventListener('DOMContentLoaded', event => {
       outputField.innerHTML += echip.id + '\n'
     }
 
-    // let data = await echip.getData()
-    // if (outputField) {
-    //   data.forEach(d => {
-    //     d.forEach(x => outputField.innerHTML += ('00' + x.toString(16)).substr(-2) + ' ')
-    //     outputField.innerHTML += '\n'
-    //   })
-    // }
+    let data = await echip.getData()
+    if (outputField) {
+      data.forEach(d => {
+        d.forEach(x => outputField.innerHTML += ('00' + x.toString(16)).substr(-2) + ' ')
+        outputField.innerHTML += '\n'
+      })
+    }
   }
 
   echipReaderWatcher.onConnect((echipReader) => {

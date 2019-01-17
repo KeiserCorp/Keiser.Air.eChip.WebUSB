@@ -6,13 +6,13 @@ import { Listener, Disposable } from './typedEvent'
 export default class EChip extends EChipConnection {
   private echipId: Uint8Array
   private owDevice: OWDevice
-  // private data: Promise<Uint8Array[]>
+  private data: Promise<Uint8Array[]>
 
   constructor (echipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(onDisconnect)
     this.echipId = echipId
     this.owDevice = owDevice
-    // this.data = this.owDevice.keyReadAll(this.echipId, true)
+    this.data = this.owDevice.keyReadAll(this.echipId, false)
     Logger.info('EChip connected: ' + this.id)
   }
 
@@ -29,9 +29,9 @@ export default class EChip extends EChipConnection {
     this.owDevice.close()
   }
 
-  // async getData () {
-  //   return this.data
-  // }
+  async getData () {
+    return this.data
+  }
 
   protected async dispose () {
     await super.dispose()
