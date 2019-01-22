@@ -6,7 +6,7 @@ const SEARCH_INTERVAL = 500
 const TIMEOUT_INTERVAL = 500
 
 const isValidKeyId = (keyId: Uint8Array) => {
-  return keyId[0] === 0x0C
+  return keyId[0] === 0x0C && keyId[7] !== 0
 }
 
 const timeoutPromise: () => Promise<void> = () => {
