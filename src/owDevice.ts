@@ -110,17 +110,20 @@ export default class OWDevice {
   private async keySearch () {
     let validIds = []
     let result = await this.romSearch()
-    if (isValidKeyId(result.key)) {
-      validIds.push(result.key)
-    }
 
-    while (!result.lastDevice) {
-      result = await result.next()
+    if (result.result) {
       if (isValidKeyId(result.key)) {
         validIds.push(result.key)
       }
+
+      while (result.result && !result.lastDevice) {
+        result = await result.next()
+        if (result.result && isValidKeyId(result.key)) {
+          validIds.push(result.key)
+        }
+      }
+      this.onDetectKeys(validIds)
     }
-    this.onDetectKeys(validIds)
   }
 
   private async deviceStatus () {
@@ -246,14 +249,8 @@ export default class OWDevice {
   }
 
   private async romCommand (keyRom: Uint8Array | null = null, overdrive: boolean = false) {
-    let index
-    let transferDataBuffer = new Uint8Array(8).buffer
-    if (keyRom) {
-      transferDataBuffer = keyRom.buffer
-      index = overdrive ? 0x0069 : 0x0055
-    } else {
-      index = overdrive ? 0x003C : 0x00CC
-    }
+    let index = keyRom ? (overdrive ? 0x0069 : 0x0055) : (overdrive ? 0x003C : 0x00CC)
+    let transferDataBuffer = keyRom ? keyRom.buffer : new Uint8Array(8).buffer
 
     let res = await this.usbDevice.controlTransferOut({
       requestType: 'vendor',
@@ -292,6 +289,7 @@ export default class OWDevice {
     })
 
     return {
+      result: searchResult.searchResult,
       key: searchResult.romId,
       lastDevice: searchResult.lastDevice,
       next: async () => this.romSearch(searchResult.lastDiscrepancy)
@@ -340,7 +338,7 @@ export default class OWDevice {
         }
         if (searchObject.searchResult === false || searchObject.romId[0] === 0) {
           searchObject.lastDiscrepancy = 0
-          searchObject.lastDevice = false
+          searchObject.lastDevice = true
           searchObject.searchResult = false
         }
         return searchObject
@@ -432,6 +430,7 @@ export default class OWDevice {
     }
 
     const keyReadMemory = async (memory: Array<Uint8Array> = new Array(256), pageIndex: number = 0) => {
+      console.log('Read Page: ' + pageIndex)
       memory[pageIndex] = new Uint8Array(32)
       let buffer = (new Uint8Array(32)).fill(0xFF)
       await this.write(buffer)
@@ -443,6 +442,7 @@ export default class OWDevice {
     }
 
     let releaseMutex = await this.mutex.acquire()
+    let t1 = performance.now()
     try {
       await this.setSpeed(false)
       await this.reset()
@@ -451,7 +451,9 @@ export default class OWDevice {
       await this.write(writeCommand, true)
       return await keyReadMemory()
     } finally {
+      let t2 = performance.now()
       releaseMutex()
+      console.log('Read Complete: ' + (t2 - t1) + 'ms')
     }
   }
 }

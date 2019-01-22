@@ -12,7 +12,7 @@ export default class EChip extends EChipConnection {
     super(onDisconnect)
     this.echipId = echipId
     this.owDevice = owDevice
-    this.data = this.owDevice.keyReadAll(this.echipId, false)
+    this.data = this.owDevice.keyReadAll(this.echipId, true)
     Logger.info('EChip connected: ' + this.id)
   }
 
