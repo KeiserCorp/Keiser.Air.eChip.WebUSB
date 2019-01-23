@@ -1,6 +1,7 @@
 import Logger from './logger'
 import OWDevice from './owDevice'
 import EChipConnection from './echipConnection'
+import EChipParser from './echipParser'
 import { Listener, Disposable } from './typedEvent'
 
 export default class EChip extends EChipConnection {
@@ -12,7 +13,7 @@ export default class EChip extends EChipConnection {
     super(onDisconnect)
     this.echipId = echipId
     this.owDevice = owDevice
-    this.data = this.owDevice.keyReadAll(this.echipId, false)
+    this.data = this.loadData()
     Logger.info('EChip connected: ' + this.id)
   }
 
@@ -36,5 +37,10 @@ export default class EChip extends EChipConnection {
   protected async dispose () {
     await super.dispose()
     Logger.info('EChip disconnected: ' + this.id)
+  }
+
+  private async loadData () {
+    let raw = await this.owDevice.keyReadAll(this.echipId, false)
+    return EChipParser(raw)
   }
 }
