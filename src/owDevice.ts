@@ -4,6 +4,7 @@ import { Mutex } from 'async-mutex'
 const BULK_SIZE = 64
 const SEARCH_INTERVAL = 500
 const TIMEOUT_INTERVAL = 500
+const ALT_INTERFACE = 1
 
 const isValidKeyId = (keyId: Uint8Array) => {
   return keyId[0] === 0x0C && keyId[7] !== 0
@@ -52,7 +53,7 @@ export default class OWDevice {
   constructor (usbDevice: USBDevice, onDetectKeys: (keyId: Array<Uint8Array>) => void = (k: Array<Uint8Array>) => { return }) {
     this.usbDevice = usbDevice
     this.onDetectKeys = onDetectKeys
-    const altInterface = this.usbDevice.configurations[0].interfaces[0].alternates[1]
+    const altInterface = this.usbDevice.configurations[0].interfaces[0].alternates[ALT_INTERFACE]
     this.interrupt = altInterface.endpoints[0]
     this.bulkIn = altInterface.endpoints[1]
     this.bulkOut = altInterface.endpoints[2]
@@ -66,7 +67,7 @@ export default class OWDevice {
         await this.usbDevice.selectConfiguration(usbConfiguration.configurationValue)
       }
       await this.usbDevice.claimInterface(usbInterface.interfaceNumber)
-      await this.usbDevice.selectAlternateInterface(usbInterface.interfaceNumber, usbInterface.alternates[1].alternateSetting)
+      await this.usbDevice.selectAlternateInterface(usbInterface.interfaceNumber, usbInterface.alternates[ALT_INTERFACE].alternateSetting)
     } catch (error) {
       throw new Error('1-Wire Device interface cannot be claimed.')
     }
@@ -173,20 +174,20 @@ export default class OWDevice {
     // }
   }
 
-  // private async deviceReset () {
-  //   await this.usbDevice.reset()
-  //   let res = await this.usbDevice.controlTransferOut({
-  //     requestType: 'vendor',
-  //     recipient: 'device',
-  //     request: 0x00,
-  //     value: 0x00,
-  //     index: 0x00
-  //   })
-  //   if (res.status !== 'ok') {
-  //     throw new Error('1-Wire Device reset failed.')
-  //   }
-  //   await this.detectShort()
-  // }
+  private async deviceReset () {
+    await this.usbDevice.reset()
+    let res = await this.usbDevice.controlTransferOut({
+      requestType: 'vendor',
+      recipient: 'device',
+      request: 0x00,
+      value: 0x00,
+      index: 0x00
+    })
+    if (res.status !== 'ok') {
+      throw new Error('1-Wire Device reset failed.')
+    }
+    await this.detectShort()
+  }
 
   private async write (data: Uint8Array, clearWire: boolean = false) {
     try {
@@ -202,7 +203,10 @@ export default class OWDevice {
         index: data.length
       })
       if (clearWire) {
-        await this.read(data.length)
+        let cleared = 0
+        do {
+          cleared += (await this.read(data.length - cleared)).length
+        } while (cleared < data.length)
       }
     } catch (error) {
       throw new Error('1-Wire Device write failed.')
@@ -223,11 +227,20 @@ export default class OWDevice {
   }
 
   private async read (byteCount: number) {
-    let res = await this.usbDevice.transferIn(this.bulkOut.endpointNumber, byteCount)
-    if (res.status !== 'ok' || typeof res.data === 'undefined') {
+    let transfer = this.usbDevice.transferIn(this.bulkOut.endpointNumber, byteCount)
+    let timeout = new Promise((r,e) => setTimeout(() => e(), TIMEOUT_INTERVAL))
+    try {
+      let res = await Promise.race([
+        transfer,
+        timeout
+      ])
+      if (!(res instanceof USBInTransferResult) || res.status !== 'ok' || typeof res.data === 'undefined') {
+        throw new Error()
+      }
+      return new Uint8Array(res.data.buffer)
+    } catch (error) {
       throw new Error('1-Wire Device read failed.')
     }
-    return new Uint8Array(res.data.buffer)
   }
 
   private async readBit () {
@@ -249,6 +262,7 @@ export default class OWDevice {
   }
 
   private async romCommand (keyRom: Uint8Array | null = null, overdrive: boolean = false) {
+    // Index Value Ref: http://owfs.sourceforge.net/commands.html
     let index = keyRom ? (overdrive ? 0x0069 : 0x0055) : (overdrive ? 0x003C : 0x00CC)
     let transferDataBuffer = keyRom ? keyRom.buffer : new Uint8Array(8).buffer
 
@@ -422,7 +436,7 @@ export default class OWDevice {
 
   async keyReadAll (keyRom: Uint8Array, overdrive: boolean = false) {
     const keyReadPage = async (page: Uint8Array, index: number = 0) => {
-      let result = await this.read(BULK_SIZE)
+      let result = await this.read(overdrive ? BULK_SIZE / 4 : BULK_SIZE)
       result.forEach(e => page[index++] = e)
       if (index < page.length) {
         await keyReadPage(page, index)
@@ -441,15 +455,25 @@ export default class OWDevice {
       return memory
     }
 
-    let releaseMutex = await this.mutex.acquire()
-    let t1 = performance.now()
-    try {
+    const keyReadAllSteps = async (overdrive: boolean) => {
       await this.setSpeed(false)
       await this.reset()
       await this.romMatch(keyRom, overdrive)
       const writeCommand = new Uint8Array([0xF0, 0x00, 0x00])
       await this.write(writeCommand, true)
-      return await keyReadMemory()
+      return keyReadMemory()
+    }
+
+    let releaseMutex = await this.mutex.acquire()
+    let t1 = performance.now()
+    try {
+      try {
+        return await keyReadAllSteps(overdrive)
+      } catch (error) {
+        console.error('Failed first read: ' + error.message)
+        await this.deviceReset()
+        return await keyReadAllSteps(false)
+      }
     } finally {
       let t2 = performance.now()
       releaseMutex()

@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', event => {
 
   const processEchip = async (echip: EChip) => {
     if (outputField) {
+      outputField.innerHTML = ''
       outputField.innerHTML += echip.id + '\n'
     }
 
