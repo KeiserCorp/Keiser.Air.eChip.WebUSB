@@ -1,9 +1,10 @@
+import Logger from './logger'
 import crc81wire from 'crc/crc81wire'
 import { Mutex } from 'async-mutex'
 
 const BULK_SIZE = 64
-const SEARCH_INTERVAL = 500
-const TIMEOUT_INTERVAL = 500
+const SEARCH_INTERVAL = 100
+const TIMEOUT_INTERVAL = 200
 const ALT_INTERFACE = 1
 
 const isValidKeyId = (keyId: Uint8Array) => {
@@ -437,7 +438,8 @@ export default class OWDevice {
 
   async keyReadAll (keyRom: Uint8Array, overdrive: boolean = false) {
     const keyReadPage = async (page: Uint8Array, index: number = 0) => {
-      let result = await this.read(BULK_SIZE)
+      const size = Math.min(BULK_SIZE, page.length - index)
+      const result = await this.read(size)
       result.forEach(e => page[index++] = e)
       if (index < page.length) {
         await keyReadPage(page, index)
@@ -448,9 +450,9 @@ export default class OWDevice {
       memory[pageIndex] = new Uint8Array(32)
       let buffer = (new Uint8Array(32)).fill(0xFF)
       await this.write(buffer)
-      await keyReadPage(memory[pageIndex])
-      if (pageIndex < memory.length - 1) {
-        await keyReadMemory(memory, pageIndex + 1)
+      await keyReadPage(memory[pageIndex++])
+      if (pageIndex < memory.length) {
+        await keyReadMemory(memory, pageIndex)
       }
       return memory
     }
@@ -464,16 +466,20 @@ export default class OWDevice {
       return keyReadMemory()
     }
 
-    let releaseMutex = await this.mutex.acquire()
+    const releaseMutex = await this.mutex.acquire()
+    const start = performance.now()
     try {
       try {
         return await keyReadAllSteps(overdrive)
       } catch (error) {
+        Logger.warn('Read All ' + (overdrive ? 'Overdrive ' : '') + 'Failed: ' + error.message)
         await this.deviceReset()
         return await keyReadAllSteps(false)
       }
     } finally {
+      const end = performance.now()
       releaseMutex()
+      Logger.info('Read All Completed: ' + Math.round(end - start) + 'ms')
     }
   }
 }

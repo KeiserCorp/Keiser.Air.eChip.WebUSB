@@ -12,7 +12,7 @@ export default class EChip extends EChipConnection {
     super(onDisconnect)
     this.echipId = echipId
     this.owDevice = owDevice
-    this.data = this.loadData()
+    this.data = this.owDevice.keyReadAll(this.echipId, false)
     Logger.info('EChip connected: ' + this.id)
   }
 
@@ -36,13 +36,5 @@ export default class EChip extends EChipConnection {
   protected async dispose () {
     await super.dispose()
     Logger.info('EChip disconnected: ' + this.id)
-  }
-
-  private async loadData () {
-    const start = performance.now()
-    const data = await this.owDevice.keyReadAll(this.echipId, true)
-    const end = performance.now()
-    Logger.info('Echip read completed in ' + Math.round(end - start) + 'ms')
-    return data
   }
 }
