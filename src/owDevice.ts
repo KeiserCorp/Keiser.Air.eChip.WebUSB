@@ -68,6 +68,7 @@ export default class OWDevice {
       }
       await this.usbDevice.claimInterface(usbInterface.interfaceNumber)
       await this.usbDevice.selectAlternateInterface(usbInterface.interfaceNumber, usbInterface.alternates[ALT_INTERFACE].alternateSetting)
+      await this.deviceReset()
     } catch (error) {
       throw new Error('1-Wire Device interface cannot be claimed.')
     }
@@ -436,7 +437,7 @@ export default class OWDevice {
 
   async keyReadAll (keyRom: Uint8Array, overdrive: boolean = false) {
     const keyReadPage = async (page: Uint8Array, index: number = 0) => {
-      let result = await this.read(overdrive ? BULK_SIZE / 4 : BULK_SIZE)
+      let result = await this.read(BULK_SIZE)
       result.forEach(e => page[index++] = e)
       if (index < page.length) {
         await keyReadPage(page, index)
@@ -444,7 +445,6 @@ export default class OWDevice {
     }
 
     const keyReadMemory = async (memory: Array<Uint8Array> = new Array(256), pageIndex: number = 0) => {
-      console.log('Read Page: ' + pageIndex)
       memory[pageIndex] = new Uint8Array(32)
       let buffer = (new Uint8Array(32)).fill(0xFF)
       await this.write(buffer)
@@ -465,19 +465,15 @@ export default class OWDevice {
     }
 
     let releaseMutex = await this.mutex.acquire()
-    let t1 = performance.now()
     try {
       try {
         return await keyReadAllSteps(overdrive)
       } catch (error) {
-        console.error('Failed first read: ' + error.message)
         await this.deviceReset()
         return await keyReadAllSteps(false)
       }
     } finally {
-      let t2 = performance.now()
       releaseMutex()
-      console.log('Read Complete: ' + (t2 - t1) + 'ms')
     }
   }
 }
