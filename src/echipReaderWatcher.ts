@@ -7,35 +7,33 @@ const ECHIP_READER_PRODUCT_ID = 0x2490
 
 export default class EChipReaderWatcher extends WebUSBDevice {
   private onConnectEvent = new TypedEvent<EChipReader>()
-  private onDisconnectEvent = new TypedEvent<null>()
+  private onDisconnectEvent = new TypedEvent<USBDevice>()
 
   constructor () {
     super(ECHIP_READER_VENDOR_ID, ECHIP_READER_PRODUCT_ID)
   }
 
   stop () {
-    this.disconnected()
+    this.connectedDevices.forEach(d => this.disconnected(d))
   }
 
   onConnect (listener: Listener<EChipReader>) {
     return this.onConnectEvent.on(listener)
   }
 
-  private onDisconnect (listener: Listener<null>) {
+  private onDisconnect (listener: Listener<USBDevice>) {
     return this.onDisconnectEvent.on(listener)
   }
 
   protected async connected (device: USBDevice) {
     await super.connected(device)
-    if (this.targetDevice) {
-      const echipReader = new EChipReader(this.targetDevice, (l: Listener<null>) => this.onDisconnect(l))
-      await echipReader.claimed
-      this.onConnectEvent.emit(echipReader)
-    }
+    const echipReader = new EChipReader(device, (l: Listener<USBDevice>) => this.onDisconnect(l))
+    await echipReader.claimed
+    this.onConnectEvent.emit(echipReader)
   }
 
-  protected async disconnected () {
-    this.onDisconnectEvent.emit(null)
-    await super.disconnected()
+  protected async disconnected (device: USBDevice) {
+    this.onDisconnectEvent.emit(device)
+    await super.disconnected(device)
   }
 }

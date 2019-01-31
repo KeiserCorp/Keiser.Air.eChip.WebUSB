@@ -1,8 +1,9 @@
-import { Listener, Disposable } from './typedEvent'
+import { TypedEvent, Listener, Disposable } from './typedEvent'
 
 export default class EChipConnection {
   protected disposed: boolean = false
   private onDisconnectListener: Disposable | null = null
+  private onDisconnectEvent = new TypedEvent<null>()
 
   constructor (onDisconnect: (listener: Listener<null>) => Disposable) {
     this.onDisconnectListener = onDisconnect(() => this.disconnected())
@@ -12,7 +13,12 @@ export default class EChipConnection {
     return this.disposed
   }
 
+  onDisconnect (listener: Listener<null>) {
+    return this.onDisconnectEvent.on(listener)
+  }
+
   protected disconnected () {
+    this.onDisconnectEvent.emit(null)
     this.dispose()
   }
 

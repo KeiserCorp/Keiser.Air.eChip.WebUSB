@@ -1,7 +1,7 @@
 export default class WebUSBDevice {
-    private vendorId;
-    private productId;
-    protected targetDevice: USBDevice | null;
+    private readonly vendorId;
+    private readonly productId;
+    protected connectedDevices: Array<USBDevice>;
     constructor(vendorId: number, productId: number);
     readonly isConnected: boolean;
     start(): Promise<void>;
@@ -10,7 +10,7 @@ export default class WebUSBDevice {
     private attached;
     private detached;
     protected connected(device: USBDevice): Promise<void>;
-    protected disconnected(): Promise<void>;
+    protected disconnected(device: USBDevice): Promise<void>;
     private matchesTarget;
-    private isTargetDevice;
+    private isConnectedDevices;
 }

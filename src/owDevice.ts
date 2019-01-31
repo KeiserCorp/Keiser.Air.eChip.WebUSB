@@ -1,8 +1,19 @@
+import Logger from './logger'
 import crc81wire from 'crc/crc81wire'
 import { Mutex } from 'async-mutex'
 
 const BULK_SIZE = 64
-const SEARCH_INTERVAL = 500
+const SEARCH_INTERVAL = 100
+const TIMEOUT_INTERVAL = 200
+const ALT_INTERFACE = 1
+
+const isValidKeyId = (keyId: Uint8Array) => {
+  return keyId[0] === 0x0C && keyId[7] !== 0
+}
+
+const timeoutPromise: () => Promise<void> = () => {
+  return new Promise(r => setTimeout(() => { r() }, TIMEOUT_INTERVAL))
+}
 
 class StateRegister {
   detectKey: boolean
@@ -43,7 +54,7 @@ export default class OWDevice {
   constructor (usbDevice: USBDevice, onDetectKeys: (keyId: Array<Uint8Array>) => void = (k: Array<Uint8Array>) => { return }) {
     this.usbDevice = usbDevice
     this.onDetectKeys = onDetectKeys
-    const altInterface = this.usbDevice.configurations[0].interfaces[0].alternates[1]
+    const altInterface = this.usbDevice.configurations[0].interfaces[0].alternates[ALT_INTERFACE]
     this.interrupt = altInterface.endpoints[0]
     this.bulkIn = altInterface.endpoints[1]
     this.bulkOut = altInterface.endpoints[2]
@@ -57,7 +68,8 @@ export default class OWDevice {
         await this.usbDevice.selectConfiguration(usbConfiguration.configurationValue)
       }
       await this.usbDevice.claimInterface(usbInterface.interfaceNumber)
-      await this.usbDevice.selectAlternateInterface(usbInterface.interfaceNumber, usbInterface.alternates[1].alternateSetting)
+      await this.usbDevice.selectAlternateInterface(usbInterface.interfaceNumber, usbInterface.alternates[ALT_INTERFACE].alternateSetting)
+      await this.deviceReset()
     } catch (error) {
       throw new Error('1-Wire Device interface cannot be claimed.')
     }
@@ -73,25 +85,26 @@ export default class OWDevice {
 
   async close () {
     this.searching = false
-    try {
-      if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
-        let releaseMutex = await this.mutex.acquire()
+    if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
+      let releaseMutex = await this.mutex.acquire()
+      try {
         await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
-        releaseMutex()
-      }
-    } catch (error) { /*Ignore error*/ }
+      } catch (error) { /*Ignore error*/ }
+      releaseMutex()
+    }
   }
 
   private awaitKey () {
     setTimeout(async () => {
-      try {
-        if (this.searching) {
-          let releaseMutex = await this.mutex.acquire()
-          await this.keySearch()
-          releaseMutex()
-          this.awaitKey()
-        }
-      } catch (error) {
+      if (this.searching) {
+        let releaseMutex = await this.mutex.acquire()
+        try {
+          await Promise.race([
+            this.keySearch(),
+            timeoutPromise()
+          ])
+        } catch (error) {/*Ignore error*/}
+        releaseMutex()
         this.awaitKey()
       }
     }, SEARCH_INTERVAL)
@@ -100,17 +113,20 @@ export default class OWDevice {
   private async keySearch () {
     let validIds = []
     let result = await this.romSearch()
-    if (result.key[7] === 143) {
-      validIds.push(result.key)
-    }
 
-    while (!result.lastDevice) {
-      result = await result.next()
-      if (result.key[7] === 143) {
+    if (result.result) {
+      if (isValidKeyId(result.key)) {
         validIds.push(result.key)
       }
+
+      while (result.result && !result.lastDevice) {
+        result = await result.next()
+        if (result.result && isValidKeyId(result.key)) {
+          validIds.push(result.key)
+        }
+      }
+      this.onDetectKeys(validIds)
     }
-    this.onDetectKeys(validIds)
   }
 
   private async deviceStatus () {
@@ -143,21 +159,21 @@ export default class OWDevice {
   }
 
   private async reset () {
-    try {
-      let res = await this.usbDevice.controlTransferOut({
-        requestType: 'vendor',
-        recipient: 'device',
-        request: 0x01,
-        value: 0x0C4B,
-        index: 0x0001
-      })
-      if (res.status !== 'ok') {
-        throw new Error('1-Wire Device reset request failed.')
-      }
-      await this.detectShort()
-    } catch (error) {
-      await this.deviceReset()
+    // try {
+    let res = await this.usbDevice.controlTransferOut({
+      requestType: 'vendor',
+      recipient: 'device',
+      request: 0x01,
+      value: 0x0C4B,
+      index: 0x0001
+    })
+    if (res.status !== 'ok') {
+      throw new Error('1-Wire Device reset request failed.')
     }
+    await this.detectShort()
+    // } catch (error) {
+    //   await this.deviceReset()
+    // }
   }
 
   private async deviceReset () {
@@ -189,7 +205,10 @@ export default class OWDevice {
         index: data.length
       })
       if (clearWire) {
-        await this.read(data.length)
+        let cleared = 0
+        do {
+          cleared += (await this.read(data.length - cleared)).length
+        } while (cleared < data.length)
       }
     } catch (error) {
       throw new Error('1-Wire Device write failed.')
@@ -210,9 +229,14 @@ export default class OWDevice {
   }
 
   private async read (byteCount: number) {
+    let transfer = this.usbDevice.transferIn(this.bulkOut.endpointNumber, byteCount)
+    let timeout = new Promise((r,e) => setTimeout(() => e(), TIMEOUT_INTERVAL))
     try {
-      let res = await this.usbDevice.transferIn(this.bulkOut.endpointNumber, byteCount)
-      if (res.status !== 'ok' || typeof res.data === 'undefined') {
+      let res = await Promise.race([
+        transfer,
+        timeout
+      ])
+      if (!(res instanceof USBInTransferResult) || res.status !== 'ok' || typeof res.data === 'undefined') {
         throw new Error()
       }
       return new Uint8Array(res.data.buffer)
@@ -240,22 +264,9 @@ export default class OWDevice {
   }
 
   private async romCommand (keyRom: Uint8Array | null = null, overdrive: boolean = false) {
-    let index
-    let transferDataBuffer = new Uint8Array(8).buffer
-    if (keyRom) {
-      transferDataBuffer = keyRom.buffer
-      if (overdrive) {
-        index = 0x0069
-      } else {
-        index = 0x0055
-      }
-    } else {
-      if (overdrive) {
-        index = 0x003C
-      } else {
-        index = 0x00CC
-      }
-    }
+    // Index Value Ref: http://owfs.sourceforge.net/commands.html
+    let index = keyRom ? (overdrive ? 0x0069 : 0x0055) : (overdrive ? 0x003C : 0x00CC)
+    let transferDataBuffer = keyRom ? keyRom.buffer : new Uint8Array(8).buffer
 
     let res = await this.usbDevice.controlTransferOut({
       requestType: 'vendor',
@@ -294,16 +305,17 @@ export default class OWDevice {
     })
 
     return {
+      result: searchResult.searchResult,
       key: searchResult.romId,
       lastDevice: searchResult.lastDevice,
       next: async () => this.romSearch(searchResult.lastDiscrepancy)
     }
   }
 
-  private async romSubSearch (searchObject: ROMSearchObject): Promise<ROMSearchObject> {
+  private async romSubSearch (searchObject: ROMSearchObject): Promise < ROMSearchObject > {
     searchObject.idBit = await this.readBit()
     searchObject.cmpIdBit = await this.readBit()
-    if (searchObject.idBit !== 1 || searchObject.cmpIdBit !== 1) {
+    if (searchObject .idBit !== 1 || searchObject.cmpIdBit !== 1) {
       if (searchObject.idBit !== searchObject.cmpIdBit) {
         searchObject.searchDirection = searchObject.idBit
       } else {
@@ -342,7 +354,7 @@ export default class OWDevice {
         }
         if (searchObject.searchResult === false || searchObject.romId[0] === 0) {
           searchObject.lastDiscrepancy = 0
-          searchObject.lastDevice = false
+          searchObject.lastDevice = true
           searchObject.searchResult = false
         }
         return searchObject
@@ -395,7 +407,7 @@ export default class OWDevice {
     await this.write(writeCommand, true)
   }
 
-  async keyWriteAll (keyRom: Uint8Array, data: Array<Uint8Array> = [], overdrive: boolean = false) {
+  async keyWriteAll (keyRom: Uint8Array, data: Array < Uint8Array > = [], overdrive: boolean = false) {
     const keyWriteAllOffset = async (keyRom: Uint8Array, page: number = 0, data: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
       await this.keyWrite(keyRom, offset, data[page], overdrive)
@@ -407,7 +419,7 @@ export default class OWDevice {
     await keyWriteAllOffset(keyRom, 0, data, overdrive)
   }
 
-  async keyWriteDiff (keyRom: Uint8Array, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) {
+  async keyWriteDiff (keyRom: Uint8Array, newData: Array < Uint8Array > = [], oldData: Array < Uint8Array > = [], overdrive: boolean = false) {
     const keyWriteDiffOffset = async (keyRom: Uint8Array, page: number = 0, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
       if (newData[page].length !== oldData[page].length || !newData[page].every((e,i) => e === oldData[page][i])) {
@@ -426,7 +438,8 @@ export default class OWDevice {
 
   async keyReadAll (keyRom: Uint8Array, overdrive: boolean = false) {
     const keyReadPage = async (page: Uint8Array, index: number = 0) => {
-      let result = await this.read(BULK_SIZE)
+      const size = Math.min(BULK_SIZE, page.length - index)
+      const result = await this.read(size)
       result.forEach(e => page[index++] = e)
       if (index < page.length) {
         await keyReadPage(page, index)
@@ -437,18 +450,36 @@ export default class OWDevice {
       memory[pageIndex] = new Uint8Array(32)
       let buffer = (new Uint8Array(32)).fill(0xFF)
       await this.write(buffer)
-      await keyReadPage(memory[pageIndex])
-      if (pageIndex < memory.length - 1) {
-        await keyReadMemory(memory, pageIndex + 1)
+      await keyReadPage(memory[pageIndex++])
+      if (pageIndex < memory.length) {
+        await keyReadMemory(memory, pageIndex)
       }
       return memory
     }
 
-    await this.setSpeed(false)
-    await this.reset()
-    await this.romMatch(keyRom, overdrive)
-    const writeCommand = new Uint8Array([0xF0, 0x00, 0x00])
-    await this.write(writeCommand, true)
-    return keyReadMemory()
+    const keyReadAllSteps = async (overdrive: boolean) => {
+      await this.setSpeed(false)
+      await this.reset()
+      await this.romMatch(keyRom, overdrive)
+      const writeCommand = new Uint8Array([0xF0, 0x00, 0x00])
+      await this.write(writeCommand, true)
+      return keyReadMemory()
+    }
+
+    const releaseMutex = await this.mutex.acquire()
+    const start = performance.now()
+    try {
+      try {
+        return await keyReadAllSteps(overdrive)
+      } catch (error) {
+        Logger.warn('Read All ' + (overdrive ? 'Overdrive ' : '') + 'Failed: ' + error.message)
+        await this.deviceReset()
+        return await keyReadAllSteps(false)
+      }
+    } finally {
+      const end = performance.now()
+      releaseMutex()
+      Logger.info('Read All Completed: ' + Math.round(end - start) + 'ms')
+    }
   }
 }

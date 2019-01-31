@@ -1,5 +1,5 @@
-export default function syntaxHighlight (json: string) {
-  json = json
+export default function syntaxHighlight (obj: any) {
+  let json = JSON.stringify(obj, undefined, 2)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

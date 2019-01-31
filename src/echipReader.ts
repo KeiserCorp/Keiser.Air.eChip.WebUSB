@@ -1,22 +1,30 @@
 import Logger from './logger'
 import EChip from './echip'
 import OWDevice from './owDevice'
-import EChipConnection from './echipConnection'
 import { TypedEvent, Listener, Disposable } from './typedEvent'
 
-export default class EChipReader extends EChipConnection {
+export default class EChipReader {
   readonly claimed: Promise<boolean>
+  private disposed: boolean = false
+  private onDisconnectListener: Disposable | null = null
+  private usbDevice: USBDevice
   private owDevice: OWDevice
   private onEChipDetectEvent = new TypedEvent<EChip>()
   private onDisconnectEvent = new TypedEvent<null>()
   private activeKeys: Map<string,EChip> = new Map()
 
-  constructor (usbDevice: USBDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
-    super(onDisconnect)
+  constructor (usbDevice: USBDevice, onDisconnect: (listener: Listener<USBDevice>) => Disposable) {
+    this.onDisconnectListener = onDisconnect((device: USBDevice) => this.disconnected(device))
+    this.usbDevice = usbDevice
     this.owDevice = new OWDevice(usbDevice, (e: Array<Uint8Array>) => this.echipsDetected(e))
-    this.claimed = this.owDevice.claim()
-    Logger.info('EChip Reader connected.')
-    this.owDevice.startSearch()
+    this.claimed = this.owDevice.claim().then(() => {
+      Logger.info('EChip Reader connected.')
+      this.owDevice.startSearch()
+      return true
+    })
+  }
+  get diposed () {
+    return this.disposed
   }
 
   onDisconnect (listener: Listener<null>) {
@@ -47,14 +55,20 @@ export default class EChipReader extends EChipConnection {
     })
   }
 
-  protected disconnected () {
-    this.onDisconnectEvent.emit(null)
-    super.disconnected()
+  protected disconnected (device: USBDevice) {
+    if (this.usbDevice === device) {
+      this.onDisconnectEvent.emit(null)
+      this.dispose()
+    }
   }
 
   protected async dispose () {
     await this.owDevice.close()
-    super.dispose()
+    if (this.onDisconnectListener) {
+      this.onDisconnectListener.dispose()
+      this.onDisconnectListener = null
+    }
+    this.disposed = true
     Logger.info('EChip Reader disconnected.')
   }
 
