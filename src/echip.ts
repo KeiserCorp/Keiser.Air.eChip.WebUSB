@@ -1,13 +1,13 @@
 import Logger from './logger'
 import OWDevice from './owDevice'
 import EChipConnection from './echipConnection'
-import EChipParser from './echipParser'
+import { EChipParser, EChipObject } from './echipLib'
 import { Listener, Disposable } from './typedEvent'
 
 export default class EChip extends EChipConnection {
   private echipId: Uint8Array
   private owDevice: OWDevice
-  private data: Promise<Uint8Array[]>
+  private data: Promise<EChipObject>
 
   constructor (echipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(onDisconnect)
@@ -23,11 +23,6 @@ export default class EChip extends EChipConnection {
 
   destroy () {
     this.disconnected()
-  }
-
-  placeholder () {
-    // This function is purely to keep the linter happy becuase owDevice isn't used yet
-    this.owDevice.close()
   }
 
   async getData () {

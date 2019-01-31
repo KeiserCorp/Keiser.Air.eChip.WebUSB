@@ -31,12 +31,7 @@ document.addEventListener('DOMContentLoaded', event => {
     }
 
     let data = await echip.getData()
-    if (outputField) {
-      data.forEach(d => {
-        d.forEach(x => outputField.innerHTML += ('00' + x.toString(16)).substr(-2) + ' ')
-        outputField.innerHTML += '\n'
-      })
-    }
+    console.log(data)
   }
 
   echipReaderWatcher.onConnect((echipReader) => {
