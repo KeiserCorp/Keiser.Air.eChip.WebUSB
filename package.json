@@ -1,6 +1,6 @@
 {
   "name": "keiser-echip-webusb",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Keiser Air eChip WebUSB Library",
   "main": "/dist/index.js",
   "types": "/dist/types/echip.d.ts",

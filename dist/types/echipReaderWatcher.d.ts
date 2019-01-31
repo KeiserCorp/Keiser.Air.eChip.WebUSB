@@ -9,5 +9,5 @@ export default class EChipReaderWatcher extends WebUSBDevice {
     onConnect(listener: Listener<EChipReader>): import("./typedEvent").Disposable;
     private onDisconnect;
     protected connected(device: USBDevice): Promise<void>;
-    protected disconnected(): Promise<void>;
+    protected disconnected(device: USBDevice): Promise<void>;
 }
