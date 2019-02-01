@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', event => {
     })
   }
 
-  const disconnectEchip = () => {
+  const disconnectEChip = () => {
     if (keyField) {
       keyField.innerHTML = ''
     }
@@ -47,8 +47,8 @@ document.addEventListener('DOMContentLoaded', event => {
     }
   }
 
-  const connectEchip = async (echip: EChip) => {
-    echip.onDisconnect(disconnectEchip)
+  const connectEChip = async (echip: EChip) => {
+    echip.onDisconnect(disconnectEChip)
 
     if (keyField) {
       keyField.innerHTML = echip.id
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', event => {
 
     echipReaders.push(echipReader)
     echipReader.onEChipDetect((echip) => {
-      connectEchip(echip)
+      connectEChip(echip)
     })
   })
 })
