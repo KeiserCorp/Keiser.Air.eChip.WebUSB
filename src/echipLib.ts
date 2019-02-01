@@ -367,7 +367,7 @@ const byteToDate = (...args: number[]) => {
  * @returns     Returns bytes in ascending order of significance (lsb first)
  */
 const dateToByte = (date: Date) => {
-  return intToByte(date.getTime())
+  return intToByte(date.getTime() / 1000)
 }
 
 const dateToSerialString = (date: Date) => {
@@ -397,8 +397,8 @@ const serialStringToByte = (serial: string) => {
     throw new Error('Invalid serial string.')
   }
   const segInts = segs.slice(1).map(seg => parseInt(seg, 10))
-  const date = new Date(segInts[2], segInts[0], segInts[1], segInts[3], segInts[4], segInts[5])
-  return dateToByte(date)
+  const msOffset = Date.UTC(segInts[2], segInts[0] - 1, segInts[1], segInts[3], segInts[4], segInts[5])
+  return intToByte(msOffset / 1000)
 }
 
 const serialStringToChannelByte = (serial: string, version: string, precision: Precision, units: ForceUnit) => {

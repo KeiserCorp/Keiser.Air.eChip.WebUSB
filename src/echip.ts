@@ -37,6 +37,7 @@ export default class EChip extends EChipConnection {
 
   async setData (machines: {[index: string]: MachineObject}) {
     let newData = EChipBuilder(machines)
+    console.log(newData)
     let oldData = (await this.data).rawData
     return this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
   }
