@@ -18,7 +18,7 @@ export const SET_1 = {
         'units': 0,
         'repetitions': 10,
         'peak': 687,
-        'work': 1395,
+        'work': 1395.08,
         'distance': null,
         'test': null
       },
@@ -31,7 +31,7 @@ export const SET_1 = {
         'units': 0,
         'repetitions': 10,
         'peak': 640,
-        'work': 1310,
+        'work': 1310.48,
         'distance': null,
         'test': null
       },
@@ -44,7 +44,7 @@ export const SET_1 = {
         'units': 0,
         'repetitions': 10,
         'peak': 536,
-        'work': 1233,
+        'work': 1233.38,
         'distance': null,
         'test': null
       },
@@ -57,7 +57,7 @@ export const SET_1 = {
         'units': 0,
         'repetitions': 10,
         'peak': 595,
-        'work': 1288,
+        'work': 1287.98,
         'distance': null,
         'test': null
       }

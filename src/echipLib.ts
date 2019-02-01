@@ -82,7 +82,7 @@ const parseDirectory = (data: Uint8Array[]) => {
   return echipObject
 }
 
-const parseMachineSet = (data: Uint8Array[], machineObject: MachineObject, page: number) =>  {
+const parseMachineSet = (data: Uint8Array[], machineObject: MachineObject, page: number) => {
   let fatBuffer = (Math.floor(page / 32) * 32) + 31
   let fatBufferOffset = (page % 30)
   let nextPage = data[fatBuffer][fatBufferOffset]
@@ -154,7 +154,7 @@ const parseMachineSet = (data: Uint8Array[], machineObject: MachineObject, page:
     } else {
       if (peakPowerVersion(set.version)) {
         set.peak = byteToInt(dataPage[20], dataPage[21])
-        set.work = Math.round(byteToInt(dataPage[22], dataPage[23], dataPage[24], dataPage[25]) / 64)
+        set.work = Math.round((byteToInt(dataPage[22], dataPage[23], dataPage[24], dataPage[25]) / 64) * 100) / 100
 
         if ((model & 0xFF00) === 0x3200) {
           set.distance = byteToInt(dataPage[18], dataPage[19])
@@ -263,6 +263,11 @@ const buildMachineSet = (modelValue: number, set: MachineSet, position: MachineP
 
   // To-Do: Check on implementation of set position in extra bits field
   // buildSeatPositionData(position, page)
+  // For now we'll fill the space
+  page[26] = 0xFF
+  page[27] = 0xFF
+  page[28] = 0xFF
+  page[29] = 0xFF
 
   if (set.test) {
     buildMachineTestData(set.test, page)
