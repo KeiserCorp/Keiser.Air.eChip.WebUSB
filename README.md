@@ -33,23 +33,64 @@ connectButton.addEventListener('click', async () => {
 Once the `echipReaderWatcher.start()` method has been called the class will prompt the browser for permission and begin watching for devices matching the EChip Readers device signature.  To be alerted when a device is found, pass a function to the `echipReaderWatcher.onConnect()` method.
 
 ```ts
+echipReaderWatcher.onConnect((echipReader) => {
+  console.log('EChip Reader Connected 😄')
+})
+```
+
+The `echipReaderWatcher.onConnect()` will pass in an `EChipReader` object which is the object bound to the physical device connected.  This library is capable of handling multiple EChip Reader devices simultaneously, so the `onConnect()` method has potential for returning multiple `EChipReader` devices over the course of the application's life.
+
+```ts
+echipReader.onDisconnect(() => {
+  console.log('EChip Reader Disconnected 😞')
+})
+```
+
+The `EChipReader` object has a `onDisconnect()` method which will alert when the EChip Reader has been disconnected for some reason.  Once an `EChipReader` object has been disconnected, it is disposed and cannot be used again.  The next time the device is connected, a new `EChipReader` object will be returned.
+
+```ts
+echipReader.onEChipDetect(async (echip) => {
+  console.log('EChip Connected: ' + echip.id)
+  console.log(await echip.getData())
+})
+```
+
+The `EChipReader` object also has an `onEChipDetect()` method which will alert when a valid EChip has been placed into the reader. The event passes in an `EChip` object that can be used to interact with the EChip data directly.  Just like the `echipReaderWatcher.onConnect()` method, the `EChipReader.onEChipDetect()` method can be called multiple times for multiple EChips all being handled concurrently.  Once an EChip is disconnected, the `EChip` object is disposed and cannot be reused.
+
+Full example usage:
+```ts
+import EChipReaderWatcher from 'keiser-echip-utilities'
+
+document.addEventListener('DOMContentLoaded', event => {
+  const echipReaderWatcher = new EChipReaderWatcher()
+  const connectButton = document.querySelector('#connect') as HTMLInputElement
+
+  if (connectButton) {
+    connectButton.addEventListener('click', async () => {
+      try {
+        await echipReaderWatcher.start()
+      } catch (error) {
+        console.error(error.message)
+      }
+    })
+  }
+
   echipReaderWatcher.onConnect((echipReader) => {
-    echipReader.onEChipDetect(async (echip) => {
+    console.log('EChip Reader Connected 😄')
+    
+    echipReader.onEChipDetect((echip) => {
       console.log('EChip Connected: ' + echip.id)
       console.log(await echip.getData())
     })
 
     echipReader.onDisconnect(() => {
-      console.log('EChip Reader Disconnected')
+      console.log('EChip Reader Disconnected 😞')
     })
   })
+})
+
+
 ```
-
-The `echipReaderWatcher.onConnect()` will pass in an `EChipReader` object which is the object bound to the physical device connected.  This library is capable of handling multiple EChip Reader devices simultaneously, so the `onConnect()` method has potential for returning multiple `EChipReader` devices over the course of the application's life.
-
-The `EChipReader` object has a `onDisconnect()` method which will alert when the EChip Reader has been disconnected for some reason.  Once an `EChipReader` object has been disconnected, it is disposed and cannot be used again.  The next time the device is connected, a new `EChipReader` object will be returned.
-
-The `EChipReader` object also has an `onEChipDetect()` method which will alert when a valid EChip has been placed into the reader. The event passes in an `EChip` object that can be used to interact with the EChip data directly.  Just like the `echipReaderWatcher.onConnect()` method, the `EChipReader.onEChipDetect()` method can be called multiple times for multiple EChips all being handled concurrently.  Once an EChip is disconnected, the `EChip` object is disposed and cannot be reused.
 
 ## API
 
