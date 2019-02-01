@@ -1,6 +1,10 @@
 # Keiser Air eChip WebUSB Library
 ## Project
-Library which handles communication with the eChip USB reader using WebUSB.
+This library handles communication with the EChip USB reader using WebUSB.
+
+Required Hardware: [USB to 1-Wire/iButton Adapter (DS9490)](https://www.maximintegrated.com/en/products/ibutton/ibutton/DS9490.html)
+
+Required Drivers: [1-Wire®/iButton® Drivers for Windows](https://www.maximintegrated.com/en/products/ibutton/software/tmex/download_drivers.cfm)
 
 ## Installation
 Install with [NPM](https://www.npmjs.com/): `npm install keiser-echip-utilities`
