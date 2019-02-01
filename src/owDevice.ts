@@ -407,7 +407,7 @@ export default class OWDevice {
     await this.write(writeCommand, true)
   }
 
-  async keyWriteAll (keyRom: Uint8Array, data: Array < Uint8Array > = [], overdrive: boolean = false) {
+  async keyWriteAll (keyRom: Uint8Array, data: Array<Uint8Array> = [], overdrive: boolean = false) {
     const keyWriteAllOffset = async (keyRom: Uint8Array, page: number = 0, data: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
       await this.keyWrite(keyRom, offset, data[page], overdrive)
@@ -419,7 +419,7 @@ export default class OWDevice {
     await keyWriteAllOffset(keyRom, 0, data, overdrive)
   }
 
-  async keyWriteDiff (keyRom: Uint8Array, newData: Array < Uint8Array > = [], oldData: Array < Uint8Array > = [], overdrive: boolean = false) {
+  async keyWriteDiff (keyRom: Uint8Array, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) {
     const keyWriteDiffOffset = async (keyRom: Uint8Array, page: number = 0, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
       if (newData[page].length !== oldData[page].length || !newData[page].every((e,i) => e === oldData[page][i])) {
@@ -430,10 +430,27 @@ export default class OWDevice {
       }
     }
 
-    if (oldData.length < newData.length) {
-      oldData = await this.keyReadAll(keyRom, overdrive)
+    const releaseMutex = await this.mutex.acquire()
+    const start = performance.now()
+    try {
+      try {
+        if (oldData.length < newData.length) {
+          oldData = await this.keyReadAll(keyRom, overdrive)
+        }
+        await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
+      } catch (error) {
+        Logger.warn('Write Diff ' + (overdrive ? 'Overdrive ' : '') + 'Failed: ' + error.message)
+        if (oldData.length < newData.length) {
+          oldData = await this.keyReadAll(keyRom, overdrive)
+        }
+        await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
+      }
+    } finally {
+      const end = performance.now()
+      releaseMutex()
+      Logger.info('Write Diff Completed: ' + Math.round(end - start) + 'ms')
     }
-    await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
+
   }
 
   async keyReadAll (keyRom: Uint8Array, overdrive: boolean = false) {

@@ -1,7 +1,7 @@
 import Logger from './logger'
 import OWDevice from './owDevice'
 import EChipConnection from './echipConnection'
-import { EChipParser, EChipObject } from './echipLib'
+import { EChipBuilder, EChipParser, EChipObject, MachineObject } from './echipLib'
 import { Listener, Disposable } from './typedEvent'
 
 export default class EChip extends EChipConnection {
@@ -27,6 +27,18 @@ export default class EChip extends EChipConnection {
 
   async getData () {
     return this.data
+  }
+
+  async clearData () {
+    let newData = EChipBuilder({})
+    let oldData = (await this.data).rawData
+    return this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
+  }
+
+  async setData (machines: {[index: string]: MachineObject}) {
+    let newData = EChipBuilder(machines)
+    let oldData = (await this.data).rawData
+    return this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
   }
 
   protected async dispose () {
