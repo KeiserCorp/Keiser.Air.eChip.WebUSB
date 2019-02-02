@@ -383,18 +383,28 @@ export default class OWDevice {
         }
       }
 
+      console.log('RESET')
       await this.reset()
+      console.log('ROM MATCH')
       await this.romMatch(keyRom, overdrive)
       const writeCommand = new Uint8Array([0x0F, offsetMSB, offsetLSB])
+      console.log('WRITE CMD')
       await this.write(writeCommand, true)
+      console.log('KEY WRITE DATA')
       await keyWriteData(data)
+      console.log('RESET')
       await this.reset()
+      console.log('ROM MATCH')
       await this.romMatch(keyRom, overdrive)
       const readCommand = new Uint8Array([0xAA])
+      console.log('READ CMD')
       await this.write(readCommand)
+      console.log('READ')
       const result = await this.read(data.length)
+      console.log('CLEAR')
       await this.clearByte()
       if (result.length !== data.length || !result.every((e, i) => e === data[i])) {
+        console.log('WRITE TO SCRATCH AGAIN')
         await keyWriteToScratch(keyRom, offset, data, overdrive)
       }
     }
