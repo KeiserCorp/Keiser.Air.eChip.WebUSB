@@ -416,7 +416,15 @@ export default class OWDevice {
       }
     }
 
-    await keyWriteAllOffset(keyRom, 0, data, overdrive)
+    const releaseMutex = await this.mutex.acquire()
+    const start = performance.now()
+    try {
+      await keyWriteAllOffset(keyRom, 0, data, overdrive)
+    } finally {
+      const end = performance.now()
+      releaseMutex()
+      Logger.info('Write All Completed: ' + Math.round(end - start) + 'ms')
+    }
   }
 
   async keyWriteDiff (keyRom: Uint8Array, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) {
@@ -433,18 +441,10 @@ export default class OWDevice {
     const releaseMutex = await this.mutex.acquire()
     const start = performance.now()
     try {
-      try {
-        if (oldData.length < newData.length) {
-          oldData = await this.keyReadAll(keyRom, overdrive)
-        }
-        await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
-      } catch (error) {
-        Logger.warn('Write Diff ' + (overdrive ? 'Overdrive ' : '') + 'Failed: ' + error.message)
-        if (oldData.length < newData.length) {
-          oldData = await this.keyReadAll(keyRom, overdrive)
-        }
-        await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
+      if (oldData.length < newData.length) {
+        oldData = await this.keyReadAll(keyRom, overdrive)
       }
+      await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
     } finally {
       const end = performance.now()
       releaseMutex()
