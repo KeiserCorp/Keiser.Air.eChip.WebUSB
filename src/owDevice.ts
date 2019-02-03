@@ -137,10 +137,10 @@ export default class OWDevice {
     return new StateRegister(transferResult.data)
   }
 
-  private async detectShort () {
+  private async bufferClear () {
     let deviceStatus = await this.deviceStatus()
-    if (deviceStatus.commCommandBufferStatus !== 0 || (deviceStatus.detectKey && deviceStatus.data[0])) {
-      throw new Error('1-Wire Device short detected.')
+    if (deviceStatus.commCommandBufferStatus !== 0) {
+      await this.bufferClear()
     }
   }
 
@@ -159,7 +159,6 @@ export default class OWDevice {
   }
 
   private async reset () {
-    // try {
     let res = await this.usbDevice.controlTransferOut({
       requestType: 'vendor',
       recipient: 'device',
@@ -170,10 +169,7 @@ export default class OWDevice {
     if (res.status !== 'ok') {
       throw new Error('1-Wire Device reset request failed.')
     }
-    await this.detectShort()
-    // } catch (error) {
-    //   await this.deviceReset()
-    // }
+    await this.bufferClear()
   }
 
   private async deviceReset () {
@@ -188,7 +184,7 @@ export default class OWDevice {
     if (res.status !== 'ok') {
       throw new Error('1-Wire Device reset failed.')
     }
-    await this.detectShort()
+    await this.bufferClear()
   }
 
   private async write (data: Uint8Array, clearWire: boolean = false) {
@@ -383,28 +379,18 @@ export default class OWDevice {
         }
       }
 
-      console.log('RESET')
       await this.reset()
-      console.log('ROM MATCH')
       await this.romMatch(keyRom, overdrive)
       const writeCommand = new Uint8Array([0x0F, offsetMSB, offsetLSB])
-      console.log('WRITE CMD')
       await this.write(writeCommand, true)
-      console.log('KEY WRITE DATA')
       await keyWriteData(data)
-      console.log('RESET')
       await this.reset()
-      console.log('ROM MATCH')
       await this.romMatch(keyRom, overdrive)
       const readCommand = new Uint8Array([0xAA])
-      console.log('READ CMD')
       await this.write(readCommand)
-      console.log('READ')
       const result = await this.read(data.length)
-      console.log('CLEAR')
       await this.clearByte()
       if (result.length !== data.length || !result.every((e, i) => e === data[i])) {
-        console.log('WRITE TO SCRATCH AGAIN')
         await keyWriteToScratch(keyRom, offset, data, overdrive)
       }
     }
