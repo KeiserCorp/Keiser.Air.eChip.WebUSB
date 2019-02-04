@@ -41,12 +41,26 @@ document.addEventListener('DOMContentLoaded', event => {
   }
 
   const connectEChip = async (echip: EChip) => {
-    const setAction = async () => { await echip.setData(SET_1) }
+    const setAction = async () => {
+      await echip.setData(SET_1)
+      let data = await echip.getData()
+      console.log(data)
+      if (outputField) {
+        outputField.innerHTML = SyntaxHighlight(data.machineData)
+      }
+    }
     if (setButton) {
       setButton.addEventListener('click', setAction)
     }
 
-    const clearAction = async () => { await echip.clearData() }
+    const clearAction = async () => {
+      await echip.clearData()
+      let data = await echip.getData()
+      console.log(data)
+      if (outputField) {
+        outputField.innerHTML = SyntaxHighlight(data.machineData)
+      }
+    }
     if (clearButton) {
       clearButton.addEventListener('click', clearAction)
     }
