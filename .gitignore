@@ -19,7 +19,7 @@ npm-debug.log
 npm-debug.log.*
 
 # Ignore the dist directory
-dist/
+dist/*
 
 # Keep gitkeep files
 !.gitkeep
