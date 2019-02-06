@@ -144,7 +144,6 @@ export default class OWDevice {
   private async bufferClear () {
     let deviceStatus = await this.deviceStatus()
     if (deviceStatus.commCommandBufferStatus !== 0) {
-      console.log(deviceStatus)
       await this.bufferClear()
     }
   }

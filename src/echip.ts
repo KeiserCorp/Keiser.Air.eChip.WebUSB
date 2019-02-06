@@ -32,14 +32,14 @@ export default class EChip extends EChipConnection {
   async clearData () {
     let newData = EChipBuilder({})
     let oldData = (await this.data).rawData
-    await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, true)
+    await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
     await (this.data = this.loadData())
   }
 
   async setData (machines: {[index: string]: MachineObject}) {
     let newData = EChipBuilder(machines)
     let oldData = (await this.data).rawData
-    await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, true)
+    await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
     await (this.data = this.loadData())
   }
 
@@ -49,7 +49,7 @@ export default class EChip extends EChipConnection {
   }
 
   private async loadData () {
-    let raw = await this.owDevice.keyReadAll(this.echipId, true)
+    let raw = await this.owDevice.keyReadAll(this.echipId, false)
     return EChipParser(raw)
   }
 }
