@@ -1,88 +1,82 @@
+import Vue from 'vue'
 import EChipReaderWatcher from '../src/echipReaderWatcher'
 import EChipReader from '../src/echipReader'
 import EChip from '../src/echip'
+import { EChipObject } from '../src/echipLib'
 import SyntaxHighlight from './syntax'
+import { SET_1 } from './test'
 
-document.addEventListener('DOMContentLoaded', event => {
-  const echipReaderWatcher = new EChipReaderWatcher()
-  let echipReaders: Array<EChipReader> = []
-  const connectButton = document.querySelector('#connect') as HTMLInputElement
-  const disconnectButton = document.querySelector('#disconnect') as HTMLInputElement
-  const keyField = document.querySelector('#key')
-  const outputField = document.querySelector('#output')
-
-  window.addEventListener('onunload', event => {
-    // This doesn't work, but I think it should 😕
-    console.log('UNLOADING')
-    echipReaderWatcher.stop()
-  })
-
-  if (connectButton) {
-    connectButton.addEventListener('click', async () => {
+/* tslint:disable: no-unused-expression */
+new Vue({
+  el: '#app',
+  created () {
+    this.echipReaderWatcher.onConnect(this.echipReaderConnected)
+  },
+  data: {
+    echipReaderWatcher: new EChipReaderWatcher(),
+    echipReader: null as EChipReader | null,
+    echip: null as EChip | null,
+    echipData: null as EChipObject | null
+  },
+  methods: {
+    async connect () {
       try {
-        await echipReaderWatcher.start()
+        await this.echipReaderWatcher.start()
       } catch (error) {
         console.error(error.message)
       }
-    })
-  }
-
-  if (disconnectButton) {
-    disconnectButton.addEventListener('click', async () => {
+    },
+    async disconnect () {
       try {
-        await echipReaderWatcher.stop()
+        await this.echipReaderWatcher.stop()
       } catch (error) {
         console.error(error.message)
       }
-    })
-  }
-
-  const disconnectEChip = () => {
-    if (keyField) {
-      keyField.innerHTML = ''
-    }
-
-    if (outputField) {
-      outputField.innerHTML = ''
-    }
-  }
-
-  const connectEChip = async (echip: EChip) => {
-    echip.onDisconnect(disconnectEChip)
-
-    if (keyField) {
-      keyField.innerHTML = echip.id
-    }
-
-    let data = await echip.getData()
-    console.log(data)
-    if (outputField) {
-      outputField.innerHTML = SyntaxHighlight(data.machineData)
-    }
-  }
-
-  echipReaderWatcher.onConnect((echipReader) => {
-    echipReader.onDisconnect(() => {
-      if (disconnectButton) {
-        disconnectButton.disabled = true
+    },
+    echipReaderConnected (echipReader: EChipReader) {
+      this.echipReader = echipReader
+      this.echipReader.onDisconnect(this.echipReaderDisconnected)
+      this.echipReader.onEChipDetect(this.echipDetected)
+    },
+    echipReaderDisconnected () {
+      this.echipReader = null
+    },
+    async echipDetected (echip: EChip) {
+      this.echip = echip
+      this.echip.onDisconnect(this.echipDisconnected)
+      this.echipData = await this.echip.getData()
+    },
+    echipDisconnected () {
+      this.echip = null
+      this.echipData = null
+    },
+    async set () {
+      if (this.echip) {
+        try {
+          await this.echip.setData(SET_1)
+          this.echipData = await this.echip.getData()
+        } catch (error) {
+          console.error(error.message)
+        }
       }
-
-      if (connectButton) {
-        connectButton.disabled = false
+    },
+    async clear () {
+      if (this.echip) {
+        try {
+          await this.echip.clearData()
+          this.echipData = await this.echip.getData()
+        } catch (error) {
+          console.error(error.message)
+        }
       }
-    })
-
-    if (disconnectButton) {
-      disconnectButton.disabled = false
     }
-
-    if (connectButton) {
-      connectButton.disabled = true
+  },
+  computed: {
+    echipDataHtml: function () {
+      if (!this.echipData) {
+        return ''
+      }
+      return SyntaxHighlight(this.echipData.machineData)
     }
-
-    echipReaders.push(echipReader)
-    echipReader.onEChipDetect((echip) => {
-      connectEChip(echip)
-    })
-  })
+  }
 })

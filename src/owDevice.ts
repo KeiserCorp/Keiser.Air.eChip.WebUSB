@@ -3,7 +3,7 @@ import crc81wire from 'crc/crc81wire'
 import { Mutex } from 'async-mutex'
 
 const BULK_SIZE = 64
-const SEARCH_INTERVAL = 100
+const SEARCH_INTERVAL = 500
 const TIMEOUT_INTERVAL = 200
 const ALT_INTERFACE = 1
 
@@ -18,11 +18,15 @@ const timeoutPromise: () => Promise<void> = () => {
 class StateRegister {
   detectKey: boolean
   data: Uint8Array
+  dataOutBufferStatus: number
+  dataInBufferStatus: number
   commCommandBufferStatus: number
 
   constructor (dataView: DataView) {
     const dataArray = new Uint8Array(dataView.buffer)
     this.commCommandBufferStatus = dataArray[11]
+    this.dataOutBufferStatus = dataArray[12]
+    this.dataInBufferStatus = dataArray[13]
     this.detectKey = dataArray[16] === 165
     this.data = dataArray.slice(16, dataArray.length)
   }
@@ -137,12 +141,19 @@ export default class OWDevice {
     return new StateRegister(transferResult.data)
   }
 
-  private async detectShort () {
+  private async bufferClear () {
     let deviceStatus = await this.deviceStatus()
-    if (deviceStatus.commCommandBufferStatus !== 0 || (deviceStatus.detectKey && deviceStatus.data[0])) {
-      throw new Error('1-Wire Device short detected.')
+    if (deviceStatus.commCommandBufferStatus !== 0) {
+      await this.bufferClear()
     }
   }
+
+  // private async detectShort () {
+  //   let deviceStatus = await this.deviceStatus()
+  //   if (deviceStatus.commCommandBufferStatus !== 0 || (deviceStatus.detectKey && deviceStatus.data[0])) {
+  //     throw new Error('1-Wire Device short detected.')
+  //   }
+  // }
 
   private async setSpeed (overdrive: boolean) {
     const index = overdrive ? 0x0002 : 0x0001
@@ -159,7 +170,6 @@ export default class OWDevice {
   }
 
   private async reset () {
-    // try {
     let res = await this.usbDevice.controlTransferOut({
       requestType: 'vendor',
       recipient: 'device',
@@ -170,10 +180,7 @@ export default class OWDevice {
     if (res.status !== 'ok') {
       throw new Error('1-Wire Device reset request failed.')
     }
-    await this.detectShort()
-    // } catch (error) {
-    //   await this.deviceReset()
-    // }
+    await this.bufferClear()
   }
 
   private async deviceReset () {
@@ -188,11 +195,12 @@ export default class OWDevice {
     if (res.status !== 'ok') {
       throw new Error('1-Wire Device reset failed.')
     }
-    await this.detectShort()
+    await this.bufferClear()
   }
 
   private async write (data: Uint8Array, clearWire: boolean = false) {
     try {
+      // To-Do: Test timeout (ref: read())
       let res = await this.usbDevice.transferOut(this.bulkIn.endpointNumber, data.buffer)
       if (res.status !== 'ok') {
         throw new Error()
@@ -407,7 +415,7 @@ export default class OWDevice {
     await this.write(writeCommand, true)
   }
 
-  async keyWriteAll (keyRom: Uint8Array, data: Array < Uint8Array > = [], overdrive: boolean = false) {
+  async keyWriteAll (keyRom: Uint8Array, data: Array<Uint8Array> = [], overdrive: boolean = false) {
     const keyWriteAllOffset = async (keyRom: Uint8Array, page: number = 0, data: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
       await this.keyWrite(keyRom, offset, data[page], overdrive)
@@ -416,10 +424,17 @@ export default class OWDevice {
       }
     }
 
-    await keyWriteAllOffset(keyRom, 0, data, overdrive)
+    const releaseMutex = await this.mutex.acquire()
+    const start = performance.now()
+    try {
+      await keyWriteAllOffset(keyRom, 0, data, overdrive)
+      Logger.info('Write All Completed: ' + Math.round(performance.now() - start) + 'ms')
+    } finally {
+      releaseMutex()
+    }
   }
 
-  async keyWriteDiff (keyRom: Uint8Array, newData: Array < Uint8Array > = [], oldData: Array < Uint8Array > = [], overdrive: boolean = false) {
+  async keyWriteDiff (keyRom: Uint8Array, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) {
     const keyWriteDiffOffset = async (keyRom: Uint8Array, page: number = 0, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
       if (newData[page].length !== oldData[page].length || !newData[page].every((e,i) => e === oldData[page][i])) {
@@ -430,10 +445,18 @@ export default class OWDevice {
       }
     }
 
-    if (oldData.length < newData.length) {
-      oldData = await this.keyReadAll(keyRom, overdrive)
+    const releaseMutex = await this.mutex.acquire()
+    const start = performance.now()
+    try {
+      if (oldData.length < newData.length) {
+        oldData = await this.keyReadAll(keyRom, overdrive)
+      }
+      await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
+      Logger.info('Write Diff Completed: ' + Math.round(performance.now() - start) + 'ms')
+    } finally {
+      releaseMutex()
     }
-    await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
+
   }
 
   async keyReadAll (keyRom: Uint8Array, overdrive: boolean = false) {
@@ -477,9 +500,8 @@ export default class OWDevice {
         return await keyReadAllSteps(false)
       }
     } finally {
-      const end = performance.now()
       releaseMutex()
-      Logger.info('Read All Completed: ' + Math.round(end - start) + 'ms')
+      Logger.info('Read All Completed: ' + Math.round(performance.now() - start) + 'ms')
     }
   }
 }

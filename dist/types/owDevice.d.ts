@@ -13,7 +13,7 @@ export default class OWDevice {
     private awaitKey;
     private keySearch;
     private deviceStatus;
-    private detectShort;
+    private bufferClear;
     private setSpeed;
     private reset;
     private deviceReset;

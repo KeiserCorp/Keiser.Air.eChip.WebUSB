@@ -5,18 +5,19 @@ export interface EChipObject {
     rawData: Uint8Array[];
 }
 export interface MachineObject {
-    position: {
-        chest: number | null;
-        rom2: number | null;
-        rom1: number | null;
-        seat: number | null;
-    };
+    position: MachinePosition;
     sets: MachineSet[];
+}
+export interface MachinePosition {
+    chest: number | null;
+    rom2: number | null;
+    rom1: number | null;
+    seat: number | null;
 }
 export interface MachineSet {
     version: string;
     serial: string;
-    time: Date;
+    time: string;
     resistance: number;
     precision: Precision;
     units: ForceUnit;
@@ -53,3 +54,6 @@ export declare enum TestType {
     a42010r = 2
 }
 export declare function EChipParser(data: Uint8Array[]): EChipObject;
+export declare function EChipBuilder(machines: {
+    [index: string]: MachineObject;
+}): Uint8Array[];
