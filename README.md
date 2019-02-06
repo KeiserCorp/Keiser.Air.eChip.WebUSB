@@ -4,7 +4,7 @@ This library handles communication with the EChip USB reader using WebUSB.
 
 Required Hardware: [USB to 1-Wire/iButton Adapter (DS9490)](https://www.maximintegrated.com/en/products/ibutton/ibutton/DS9490.html)
 
-Required Drivers: [1-Wire®/iButton® Drivers for Windows](https://www.maximintegrated.com/en/products/ibutton/software/tmex/download_drivers.cfm)
+Required Drivers: [1-Wire/iButton Drivers for Windows](https://www.maximintegrated.com/en/products/ibutton/software/tmex/download_drivers.cfm)
 
 ## Installation
 Install with [NPM](https://www.npmjs.com/): `npm install keiser-echip-utilities`
@@ -88,14 +88,13 @@ document.addEventListener('DOMContentLoaded', event => {
     })
   })
 })
-
-
 ```
 
 ## API
 
 ## References
 Maxim Integrated 1-Wire USB Android notes: [https://www.maximintegrated.com/en/app-notes/index.mvp/id/5705](https://www.maximintegrated.com/en/app-notes/index.mvp/id/5705)
+
 Maxim Integrated 1-Wire USB Android project: [https://www.maximintegrated.com/en/design/tools/appnotes/5705/an5705-software.zip](https://www.maximintegrated.com/en/design/tools/appnotes/5705/an5705-software.zip)
 
 
