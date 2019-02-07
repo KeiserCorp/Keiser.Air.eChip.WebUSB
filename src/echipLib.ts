@@ -21,30 +21,48 @@ export interface MachineSet {
   time: string
   resistance: number
   precision: Precision
-  units: ForceUnit,
-  repetitions: number,
-  peak: number | null,
-  work: number | null,
-  distance: number | null,
+  units: ForceUnit
+  repetitions: number
+  peak: number | null
+  work: number | null
+  distance: number | null
+  chest: number | null
+  rom2: number | null
+  rom1: number | null
+  seat: number | null
   test: MachineTest | null
 }
 
 export interface MachineTest {
-  type: number,
-  high: MachineTestResult | null,
+  type: TestType
+  high: MachineTestResult | null
   low: MachineTestResult | null
 }
 
 export interface MachineTestResult {
-  power: number,
-  velocity: number,
-  force: number,
+  power: number
+  velocity: number
+  force: number
   position: number
 }
 
-export enum Precision { dec, int }
-export enum ForceUnit { lb, kg, ne, er }
-export enum TestType { power6r, a4206r, a42010r }
+export enum Precision {
+  dec = 'dec',
+  int = 'int'
+ }
+
+export enum ForceUnit {
+  lb = 'lb',
+  kg = 'kg',
+  ne = 'ne',
+  er = 'er'
+}
+
+export enum TestType {
+  power6r = 'power6r',
+  a4206r = 'a4206r',
+  a42010r = 'a42010r'
+}
 
 export function EChipParser (data: Uint8Array[]) {
   if (!isValidData(data)) {
@@ -100,6 +118,10 @@ const parseMachineSet = (data: Uint8Array[], machineObject: MachineObject, page:
     peak: null,
     work: null,
     distance: null,
+    seat: toValue(dataPage[26]),
+    rom2: toValue(dataPage[27]),
+    rom1: toValue(dataPage[28]),
+    chest: toValue(dataPage[29]),
     test: null
   } as MachineSet
 
@@ -260,14 +282,6 @@ const buildMachineSet = (modelValue: number, set: MachineSet, position: MachineP
   page[15] = serialTime[2]
   page[16] = serialTime[3]
   page[17] = channel
-
-  // To-Do: Check on implementation of set position in extra bits field
-  // buildSeatPositionData(position, page)
-  // For now we'll fill the space
-  page[26] = 0xFF
-  page[27] = 0xFF
-  page[28] = 0xFF
-  page[29] = 0xFF
 
   if (set.test) {
     buildMachineTestData(set.test, page)
@@ -452,18 +466,6 @@ const generateEmptyEChip = (): Uint8Array[] => {
   return data
 }
 
-// const buildSeatPositionData = (position: MachinePosition, page: Uint8Array) => {
-//   const seat = (position.seat == null) ? 0xFF : position.seat
-//   const rom1 = (position.rom1 == null) ? 0xFF : position.rom1
-//   const rom2 = (position.rom2 == null) ? 0xFF : position.rom2
-//   const chest = (position.chest == null) ? 0xFF : position.chest
-
-//   page[26] = seat
-//   page[27] = rom2
-//   page[28] = rom1
-//   page[29] = chest
-// }
-
 const buildMachineNormalData = (set: MachineSet, page: Uint8Array) => {
   const peak = intToByte(set.peak || 0)
   const work = intToByte((set.work || 0) * 64)
@@ -477,7 +479,10 @@ const buildMachineNormalData = (set: MachineSet, page: Uint8Array) => {
   page[23] = work[1]
   page[24] = work[2]
   page[25] = work[3]
-
+  page[26] = toByte(set.seat)
+  page[27] = toByte(set.rom2)
+  page[28] = toByte(set.rom1)
+  page[29] = toByte(set.chest)
 }
 
 const buildMachineTestData = (test: MachineTest, page: Uint8Array) => {
