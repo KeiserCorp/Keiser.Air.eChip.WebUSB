@@ -4,7 +4,7 @@ import EChipReader from '../src/echipReader'
 import EChip from '../src/echip'
 import { EChipObject } from '../src/echipLib'
 import SyntaxHighlight from './syntax'
-import { SET_1 } from './test'
+import { SET_2 } from './test'
 
 /* tslint:disable: no-unused-expression */
 new Vue({
@@ -52,8 +52,9 @@ new Vue({
     },
     async set () {
       if (this.echip) {
+        this.echipData = null
         try {
-          await this.echip.setData(SET_1)
+          await this.echip.setData(SET_2)
           this.echipData = await this.echip.getData()
         } catch (error) {
           console.error(error.message)
@@ -62,6 +63,7 @@ new Vue({
     },
     async clear () {
       if (this.echip) {
+        this.echipData = null
         try {
           await this.echip.clearData()
           this.echipData = await this.echip.getData()
