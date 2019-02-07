@@ -74,3 +74,66 @@ button[disabled] {
   text-shadow: 0 1px 0 #ffffff;
   cursor: default;
 }
+
+/* --- Loader --- */
+.loader,
+.loader:after,
+.loader:before {
+  display: inline-block;
+  background: #ffffff;
+  animation: load1 1s infinite ease-in-out;
+  width: 12px;
+}
+
+.loader {
+  color: #ffffff;
+  text-indent: -9999em;
+  margin-left: 1em;
+  position: relative;
+  font-size: 11px;
+  transform: translateZ(0);
+  animation-delay: -0.16s;
+  vertical-align: middle;
+}
+
+.loader:after,
+.loader:before {
+  position: absolute;
+  top: 0;
+  content: '';
+}
+
+.loader:before {
+  left: -7px;
+  animation-delay: -0.32s;
+}
+
+.loader:after {
+  left: 7px;
+}
+@-webkit-keyframes load1 {
+  0%,
+  100%,
+  80% {
+    box-shadow: 0 0;
+    height: 4px;
+  }
+
+  40% {
+    box-shadow: 0 -6px;
+    height: 6px;
+  }
+}
+@keyframes load1 {
+  0%,
+  100%,
+  80% {
+    box-shadow: 0 0;
+    height: 4px;
+  }
+
+  40% {
+    box-shadow: 0 -6px;
+    height: 6px;
+  }
+}
