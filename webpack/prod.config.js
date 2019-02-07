@@ -23,6 +23,8 @@ module.exports = {
   plugins: [
     new CleanWebpackPlugin(DIST, { root: path.resolve(__dirname, '../'), }),
     new CopyWebpackPlugin([{ from: 'types', to: 'types' }]),
+    new CopyWebpackPlugin([{ from: 'README.md', to: 'README.md' }]),
+    new CopyWebpackPlugin([{ from: 'LICENSE.md', to: 'LICENSE.md' }]),
     new WriteJsonPlugin({
       object: package,
       filename: 'package.json',
