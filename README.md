@@ -92,10 +92,12 @@ document.addEventListener('DOMContentLoaded', event => {
 
 ## API
 
-## References
-Maxim Integrated 1-Wire USB Android notes: [https://www.maximintegrated.com/en/app-notes/index.mvp/id/5705](https://www.maximintegrated.com/en/app-notes/index.mvp/id/5705)
+_Coming Soon_
 
-Maxim Integrated 1-Wire USB Android project: [https://www.maximintegrated.com/en/design/tools/appnotes/5705/an5705-software.zip](https://www.maximintegrated.com/en/design/tools/appnotes/5705/an5705-software.zip)
+## References
+[Maxim Integrated 1-Wire USB Android notes](https://www.maximintegrated.com/en/app-notes/index.mvp/id/5705)
+
+[Maxim Integrated 1-Wire USB Android project](https://www.maximintegrated.com/en/design/tools/appnotes/5705/an5705-software.zip)
 
 
 ## Copyright and License
