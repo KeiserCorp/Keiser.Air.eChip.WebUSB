@@ -427,6 +427,7 @@ export default class OWDevice {
     const releaseMutex = await this.mutex.acquire()
     const start = performance.now()
     try {
+      await this.deviceReset()
       await keyWriteAllOffset(keyRom, 0, data, overdrive)
       Logger.info('Write All Completed: ' + Math.round(performance.now() - start) + 'ms')
     } finally {
@@ -445,12 +446,14 @@ export default class OWDevice {
       }
     }
 
+    if (oldData.length !== newData.length) {
+      throw new Error('Cannot perform diff on provided data')
+    }
+
     const releaseMutex = await this.mutex.acquire()
     const start = performance.now()
     try {
-      if (oldData.length < newData.length) {
-        oldData = await this.keyReadAll(keyRom, overdrive)
-      }
+      await this.deviceReset()
       await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
       Logger.info('Write Diff Completed: ' + Math.round(performance.now() - start) + 'ms')
     } finally {
@@ -493,6 +496,7 @@ export default class OWDevice {
     const start = performance.now()
     try {
       try {
+        await this.deviceReset()
         return await keyReadAllSteps(overdrive)
       } catch (error) {
         Logger.warn('Read All ' + (overdrive ? 'Overdrive ' : '') + 'Failed: ' + error.message)

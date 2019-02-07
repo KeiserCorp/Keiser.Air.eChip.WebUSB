@@ -1,6 +1,7 @@
 export interface EChipObject {
   machineData: {[index: string]: MachineObject}
   rawData: Uint8Array[]
+  validStructure: boolean
 }
 
 export interface MachineObject {
@@ -65,18 +66,16 @@ export enum TestType {
 }
 
 export function EChipParser (data: Uint8Array[]) {
-  if (!isValidData(data)) {
-    throw new Error('Data structure failed CRC check')
-  }
-
-  return parseDirectory(data)
-}
-
-const parseDirectory = (data: Uint8Array[]) => {
   let echipObject: EChipObject = {
     machineData: {},
-    rawData: data
+    rawData: data,
+    validStructure: false
   }
+
+  if (!isValidData(data)) {
+    return echipObject
+  }
+
   for (let y = 1; y <= 8; y++) {
     for (let x = 0; x < 3; x++) {
       let pageOffset = (y * 32) - 2
@@ -97,6 +96,7 @@ const parseDirectory = (data: Uint8Array[]) => {
       }
     }
   }
+  echipObject.validStructure = true
   return echipObject
 }
 
