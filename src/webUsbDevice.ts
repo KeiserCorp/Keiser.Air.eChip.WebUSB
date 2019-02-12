@@ -75,7 +75,7 @@ export default class WebUSBDevice {
 
   protected async disconnected (device: USBDevice) {
     let index = this.connectedDevices.indexOf(device)
-    if (index >= 0 && device.opened) {
+    if (index >= 0) {
       try {
         await device.close()
       } catch (error) { /*Ignore error*/ }
