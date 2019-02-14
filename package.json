@@ -26,7 +26,7 @@
     "start": "npm run dev",
     "stage": "webpack-dev-server --config webpack/stage.config.js",
     "build": "webpack --config webpack/prod.config.js",
-    "push": "npm run build && npm publish dist --dry-run"
+    "push": "npm run build && npm publish dist"
   },
   "devDependencies": {
     "@types/node": "^10.12.21",
