@@ -14,7 +14,7 @@ export default class WebUSBDevice {
   }
 
   get isConnected () {
-    return !(this.connectedDevices.length > 0)
+    return this.connectedDevices.length > 0
   }
 
   async start () {
