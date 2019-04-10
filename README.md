@@ -7,13 +7,13 @@ Required Hardware: [USB to 1-Wire/iButton Adapter (DS9490)](https://www.maximint
 Required Drivers: [1-Wire/iButton Drivers for Windows](https://www.maximintegrated.com/en/products/ibutton/software/tmex/download_drivers.cfm)
 
 ## Installation
-Install with [NPM](https://www.npmjs.com/): `npm install keiser-echip-utilities`
+Install with [NPM](https://www.npmjs.com/): `npm install @keiser/echip-webusb`
 
 ## Usage
 
 Import module using preferred module loading technique and construct a new `EChipReaderWatcher` class.
 ```ts
-import EChipReaderWatcher from 'keiser-echip-utilities'
+import EChipReaderWatcher from '@keiser/echip-webusb'
 
 const echipReaderWatcher = new EChipReaderWatcher()
 ```
@@ -59,7 +59,7 @@ The `EChipReader` object also has an `onEChipDetect()` method which will alert w
 
 Full example usage:
 ```ts
-import EChipReaderWatcher from 'keiser-echip-utilities'
+import EChipReaderWatcher from '@keiser/echip-webusb'
 
 document.addEventListener('DOMContentLoaded', event => {
   const echipReaderWatcher = new EChipReaderWatcher()
