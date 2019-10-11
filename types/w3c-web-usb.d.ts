@@ -39,7 +39,7 @@ interface USBDeviceRequestOptions {
 }
 
 interface USBConnectionEventInit extends EventInit {
-    device: USBDevice
+    device: WebUSBDevice
 }
 
 declare class USBConfiguration {
@@ -98,7 +98,7 @@ declare class USBIsochronousOutTransferPacket {
 
 declare class USBConnectionEvent extends Event {
     constructor(type: string, eventInitDict: USBConnectionEventInit)
-    readonly device: USBDevice
+    readonly device: WebUSBDevice
 }
 
 declare class USBIsochronousOutTransferResult {
@@ -106,16 +106,16 @@ declare class USBIsochronousOutTransferResult {
     readonly packets: USBIsochronousOutTransferPacket[]
 }
 
-declare class USB extends EventTarget {
+declare class WebUSB extends EventTarget {
     onconnect(): (this: this, ev: Event) => any
     ondisconnect(): (this: this, ev: Event) => any
-    getDevices(): Promise<USBDevice[]>
-    requestDevice(options?: USBDeviceRequestOptions): Promise<USBDevice>
+    getDevices(): Promise<WebUSBDevice[]>
+    requestDevice(options?: USBDeviceRequestOptions): Promise<WebUSBDevice>
 
     addEventListener(type: "connect" | "disconnect", listener: EventListener, useCapture?: boolean): void
 }
 
-declare class USBDevice {
+declare class WebUSBDevice {
     readonly usbVersionMajor: number
     readonly usbVersionMinor: number
     readonly usbVersionSubminor: number
@@ -150,5 +150,5 @@ declare class USBDevice {
 }
 
 interface Navigator {
-    readonly usb: USB
+    readonly usb: WebUSB
 }

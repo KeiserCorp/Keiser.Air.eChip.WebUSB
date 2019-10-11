@@ -49,15 +49,16 @@ interface ROMSearchObject {
 export default class OWDevice {
   private mutex: Mutex = new Mutex()
   private searching: boolean = false
-  private usbDevice: USBDevice
+  private usbDevice: WebUSBDevice
   private interrupt: USBEndpoint
   private bulkIn: USBEndpoint
   private bulkOut: USBEndpoint
   private onDetectKeys: (keyRom: Array<Uint8Array>) => void
 
-  constructor (usbDevice: USBDevice, onDetectKeys: (keyId: Array<Uint8Array>) => void = (k: Array<Uint8Array>) => { return }) {
+  constructor (usbDevice: WebUSBDevice, onDetectKeys: (keyId: Array<Uint8Array>) => void = (k: Array<Uint8Array>) => { return }) {
     this.usbDevice = usbDevice
     this.onDetectKeys = onDetectKeys
+    console.log(this.usbDevice.configurations)
     const altInterface = this.usbDevice.configurations[0].interfaces[0].alternates[ALT_INTERFACE]
     this.interrupt = altInterface.endpoints[0]
     this.bulkIn = altInterface.endpoints[1]

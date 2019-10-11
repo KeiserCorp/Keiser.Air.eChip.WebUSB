@@ -1,7 +1,9 @@
-export default class WebUSBDevice {
+import { nodeToWeb } from './transform'
+
+export default class USBDevice {
   private readonly vendorId: number
   private readonly productId: number
-  protected connectedDevices: Array<USBDevice > = []
+  protected connectedDevices: Array<WebUSBDevice> = []
 
   constructor (vendorId: number, productId: number) {
     this.vendorId = vendorId
@@ -22,6 +24,8 @@ export default class WebUSBDevice {
   }
 
   private async requestPermission () {
+    await this.checkNodeDevices()
+
     let device
     try {
       device = await navigator.usb.requestDevice({
@@ -39,6 +43,8 @@ export default class WebUSBDevice {
   }
 
   private async checkDevices () {
+    await this.checkNodeDevices()
+
     let devices = await navigator.usb.getDevices()
     devices.some(device => {
       if (this.matchesTarget(device)) {
@@ -47,6 +53,22 @@ export default class WebUSBDevice {
       }
       return false
     })
+  }
+
+  private async checkNodeDevices () {
+    if (typeof window.node_usb === 'undefined') {
+      return
+    }
+
+    let nodeUsbDevice
+    try {
+      nodeUsbDevice = window.node_usb.findByIds(this.vendorId, this.productId)
+    } catch { return }
+
+    if (nodeUsbDevice) {
+      const webUsbDevice = nodeToWeb(nodeUsbDevice)
+      this.connected(webUsbDevice)
+    }
   }
 
   private attached (event: Event) {
@@ -61,7 +83,7 @@ export default class WebUSBDevice {
     }
   }
 
-  protected async connected (device: USBDevice) {
+  protected async connected (device: WebUSBDevice) {
     if (this.isConnectedDevices(device)) {
       throw new Error('USB Device already connected.')
     }
@@ -73,7 +95,7 @@ export default class WebUSBDevice {
     }
   }
 
-  protected async disconnected (device: USBDevice) {
+  protected async disconnected (device: WebUSBDevice) {
     let index = this.connectedDevices.indexOf(device)
     if (index >= 0) {
       try {
@@ -83,12 +105,12 @@ export default class WebUSBDevice {
     }
   }
 
-  private matchesTarget (device: USBDevice) {
+  private matchesTarget (device: WebUSBDevice) {
     return device.vendorId === this.vendorId &&
       device.productId === this.productId
   }
 
-  private isConnectedDevices (device: USBDevice) {
+  private isConnectedDevices (device: WebUSBDevice) {
     return this.connectedDevices.indexOf(device) >= 0
   }
 }
