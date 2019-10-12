@@ -254,7 +254,7 @@ class ConvertedUSBDevice {
       endpointNumber: endpoint.descriptor.bEndpointAddress,
       direction: endpoint.direction as USBDirection,
       type: this.endpointTypeTransform(endpoint.transferType),
-      packetSize: this.nodeUsbDevice.deviceDescriptor.bMaxPacketSize0
+      packetSize: endpoint.descriptor.wMaxPacketSize
     } as USBEndpoint
   }
 
