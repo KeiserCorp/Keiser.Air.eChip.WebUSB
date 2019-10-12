@@ -93,7 +93,7 @@ export default class OWDevice {
       let releaseMutex = await this.mutex.acquire()
       try {
         await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
-      } catch (error) { /*Ignore error*/ }
+      } catch (error) { console.log('Close: ' + error)/*Ignore error*/ }
       releaseMutex()
     }
   }
@@ -107,7 +107,7 @@ export default class OWDevice {
             this.keySearch(),
             timeoutPromise()
           ])
-        } catch (error) {/*Ignore error*/}
+        } catch (error) { console.log('Await: ' + error)/*Ignore error*/}
         releaseMutex()
         this.awaitKey()
       }
@@ -377,8 +377,10 @@ export default class OWDevice {
     const offsetMSB = (offset & 0xFF)
     const offsetLSB = (offset & 0xFF00) >> 8
     const endingOffset = data.length - 1
+    console.log('Starting Write')
 
     const keyWriteToScratch = async (keyRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) => {
+      console.log(`Write: ${offset} - ${data.byteLength}`)
       const keyWriteData = async (data: Uint8Array, offset: number = 0) => {
         const size = Math.min(BULK_SIZE, data.length - offset)
         const sendData = new Uint8Array(size)
