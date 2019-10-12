@@ -1,4 +1,4 @@
-import { NodeUSBDevice, ConfigDescriptor, InterfaceDescriptor, Interface, Endpoint } from '../types/node-usb'
+import { NodeUSBDevice, ConfigDescriptor, InterfaceDescriptor, Interface, Endpoint, LibUSBException, InEndpoint, OutEndpoint } from '../types/node-usb'
 
 class ConvertedUSBDevice {
   private nodeUsbDevice: NodeUSBDevice
@@ -17,6 +17,7 @@ class ConvertedUSBDevice {
   // readonly productName?: string
   // readonly serialNumber?: string
   private _opened = false
+  private _claimedInterface: Interface | null = null
 
   constructor (nodeUsbDevice: NodeUSBDevice) {
     this.nodeUsbDevice = nodeUsbDevice
@@ -62,19 +63,178 @@ class ConvertedUSBDevice {
     return Promise.resolve()
   }
 
+  async selectConfiguration (configurationValue: number) {
+    return new Promise((resolve, reject) => {
+      this.nodeUsbDevice.setConfiguration(configurationValue, (error?: string) => {
+        if (error) {
+          return reject(error)
+        }
+        resolve()
+      })
+    })
+  }
+
+  async claimInterface (interfaceNumber: number) {
+    try {
+      const targetInterface = this.nodeUsbDevice.interfaces.find(i => i.interfaceNumber === interfaceNumber)
+      if (!targetInterface) {
+        throw new Error('Interface not found')
+      }
+      targetInterface.claim()
+      this._claimedInterface = targetInterface
+      return Promise.resolve()
+    } catch (error) {
+      return Promise.reject(error)
+    }
+  }
+
+  releaseInterface (interfaceNumber: number) {
+    return new Promise((resolve, reject) => {
+      const targetInterface = this.nodeUsbDevice.interfaces.find(i => i.interfaceNumber === interfaceNumber)
+      if (!targetInterface) {
+        return reject('Interface not found')
+      }
+      targetInterface.release((error?: string) => {
+        if (error) {
+          return reject(error)
+        }
+        this._claimedInterface = null
+        resolve()
+      })
+    })
+  }
+
+  selectAlternateInterface (interfaceNumber: number, alternateSetting: number) {
+    return new Promise((resolve, reject) => {
+      const targetInterface = this.nodeUsbDevice.interfaces.find(i => i.interfaceNumber === interfaceNumber)
+      if (!targetInterface) {
+        return reject('Interface not found')
+      }
+      targetInterface.setAltSetting(alternateSetting, (error?: string) => {
+        if (error) {
+          return reject(error)
+        }
+        resolve()
+      })
+    })
+  }
+
+  controlTransferIn (setup: USBControlTransferParameters, length: number) {
+    return new Promise((resolve, reject) => {
+      this.nodeUsbDevice.controlTransfer(
+        this.requestTypeTransform(setup.requestType),
+        setup.request,
+        setup.value,
+        setup.index,
+        length,
+        (error ?: LibUSBException, buf?: Buffer) => {
+          if (error) {
+            return reject(error.message)
+          }
+          if (!buf) {
+            return reject('No buffer returned')
+          }
+          resolve({
+            data: new DataView(buf),
+            status: 'ok'
+          } as USBInTransferResult)
+        })
+    })
+  }
+
+  controlTransferOut (setup: USBControlTransferParameters, data?: BufferSource) {
+    return new Promise((resolve, reject) => {
+      this.nodeUsbDevice.controlTransfer(
+        this.requestTypeTransform(setup.requestType),
+        setup.request,
+        setup.value,
+        setup.index,
+        data ? this.arrayBufferToBuffer(data) : Buffer.from(''),
+        (error ?: LibUSBException, buf?: Buffer) => {
+          if (error) {
+            return reject(error.message)
+          }
+          resolve({
+            bytesWritten: data ? data.byteLength : 0,
+            status: 'ok'
+          } as USBOutTransferResult)
+        })
+    })
+  }
+
+  transferIn (endpointNumber: number, length: number) {
+    return new Promise((resolve, reject) => {
+      if (!this._claimedInterface) {
+        return reject('No interface claimed')
+      }
+
+      const targetEndpoint = this._claimedInterface.endpoint(endpointNumber) as InEndpoint
+      if (!targetEndpoint || targetEndpoint.direction !== 'in') {
+        return reject('No endpoint found')
+      }
+
+      targetEndpoint.transfer(length, (error: LibUSBException, data: Buffer) => {
+        if (error) {
+          return reject(error.message)
+        }
+        resolve({
+          data: new DataView(data.buffer),
+          status: 'ok'
+        } as USBInTransferResult)
+      })
+    })
+  }
+
+  transferOut (endpointNumber: number, data: BufferSource) {
+    return new Promise((resolve, reject) => {
+      if (!this._claimedInterface) {
+        return reject('No interface claimed')
+      }
+
+      const targetEndpoint = this._claimedInterface.endpoint(endpointNumber) as OutEndpoint
+      if (!targetEndpoint || targetEndpoint.direction !== 'out') {
+        return reject('No endpoint found')
+      }
+
+      targetEndpoint.transfer(this.arrayBufferToBuffer(data), (error?: LibUSBException) => {
+        if (error) {
+          return reject(error.message)
+        }
+
+        resolve({
+          bytesWritten: data ? data.byteLength : 0,
+          status: 'ok'
+        } as USBOutTransferResult)
+      })
+    })
+  }
+
+  reset () {
+    return new Promise((resolve, reject) => {
+      this.nodeUsbDevice.reset((error?: string) => {
+        if (error) {
+          return reject(error)
+        }
+        resolve()
+      })
+    })
+  }
+
   private configurationTransform (config: ConfigDescriptor) {
     const allInterfaces = config.interfaces.reduce((a, v) => a.concat(v), [])
     return {
       configurationValue: config.bConfigurationValue,
       configurationName: '',
-      interfaces: allInterfaces.map(i => this.interfaceTransform(i))
+      interfaces: allInterfaces.map(i => this.interfaceTransform(config, i))
     } as USBConfiguration
   }
 
-  private interfaceTransform (desc: InterfaceDescriptor) {
+  private interfaceTransform (config: ConfigDescriptor, desc: InterfaceDescriptor) {
+    const allInterfaces = config.interfaces.reduce((a, v) => a.concat(v), [])
     return {
       interfaceNumber: desc.bInterfaceNumber,
-      alternate: this.interfaceAltTransform(desc, this.nodeUsbDevice.interface(desc.bInterfaceNumber))
+      alternate: this.interfaceAltTransform(desc, this.nodeUsbDevice.interface(desc.bInterfaceNumber)),
+      alternates: allInterfaces.map(i => this.interfaceAltTransform(desc, this.nodeUsbDevice.interface(i.bInterfaceNumber)))
     } as USBInterface
   }
 
@@ -93,7 +253,8 @@ class ConvertedUSBDevice {
     return {
       endpointNumber: endpoint.descriptor.bEndpointAddress,
       direction: endpoint.direction as USBDirection,
-      type: this.endpointTypeTransform(endpoint.transferType)
+      type: this.endpointTypeTransform(endpoint.transferType),
+      packetSize: this.nodeUsbDevice.deviceDescriptor.bMaxPacketSize0
     } as USBEndpoint
   }
 
@@ -106,6 +267,24 @@ class ConvertedUSBDevice {
       case window.node_usb.LIBUSB_TRANSFER_TYPE_ISOCHRONOUS:
         return 'isochronous'
     }
+  }
+
+  private requestTypeTransform (requestType: USBRequestType) {
+    switch (requestType) {
+      case 'standard':
+        return window.node_usb.LIBUSB_REQUEST_TYPE_STANDARD
+      case 'class':
+        return window.node_usb.LIBUSB_REQUEST_TYPE_CLASS
+      case 'vendor':
+        return window.node_usb.LIBUSB_REQUEST_TYPE_VENDOR
+    }
+  }
+
+  private arrayBufferToBuffer (buffer: BufferSource) {
+    if (buffer instanceof ArrayBuffer) {
+      return Buffer.from(buffer)
+    }
+    return Buffer.from('')
   }
 }
 

@@ -58,7 +58,6 @@ export default class OWDevice {
   constructor (usbDevice: WebUSBDevice, onDetectKeys: (keyId: Array<Uint8Array>) => void = (k: Array<Uint8Array>) => { return }) {
     this.usbDevice = usbDevice
     this.onDetectKeys = onDetectKeys
-    console.log(this.usbDevice.configurations)
     const altInterface = this.usbDevice.configurations[0].interfaces[0].alternates[ALT_INTERFACE]
     this.interrupt = altInterface.endpoints[0]
     this.bulkIn = altInterface.endpoints[1]
@@ -241,11 +240,11 @@ export default class OWDevice {
     let transfer = this.usbDevice.transferIn(this.bulkOut.endpointNumber, byteCount)
     let timeout = new Promise((r,e) => setTimeout(() => e(), TIMEOUT_INTERVAL))
     try {
-      let res = await Promise.race([
+      let res = await (Promise.race([
         transfer,
         timeout
-      ])
-      if (!(res instanceof USBInTransferResult) || res.status !== 'ok' || typeof res.data === 'undefined') {
+      ]) as Promise<USBInTransferResult>)
+      if (res.status !== 'ok' || !res.data) {
         throw new Error()
       }
       return new Uint8Array(res.data.buffer)
