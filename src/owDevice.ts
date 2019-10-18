@@ -505,6 +505,9 @@ export default class OWDevice {
         await this.deviceReset()
         return await keyReadAllSteps(false)
       }
+    } catch (error) {
+      Logger.error('Read All Failed: ' + error.message)
+      await this.deviceReset()
     } finally {
       releaseMutex()
       Logger.info('Read All Completed: ' + Math.round(performance.now() - start) + 'ms')
