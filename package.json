@@ -9,6 +9,7 @@
     "1-wire"
   ],
   "main": "index.js",
+  "types": "./types/echipReaderWatcher.d.ts",
   "author": "Keiser Corporation",
   "license": "MIT",
   "repository": {
