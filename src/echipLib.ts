@@ -1,6 +1,6 @@
 export interface EChipObject {
   machineData: {[index: string]: MachineObject}
-  rawData: Uint8Array[]
+  rawData: Uint8Array[] | undefined
   validStructure: boolean
 }
 
@@ -65,14 +65,14 @@ export enum TestType {
   a42010r = 'a42010r'
 }
 
-export function EChipParser (data: Uint8Array[]) {
+export function EChipParser (data: Uint8Array[] | undefined) {
   let echipObject: EChipObject = {
     machineData: {},
     rawData: data,
     validStructure: false
   }
 
-  if (!isValidData(data)) {
+  if (data === undefined || !isValidData(data)) {
     return echipObject
   }
 
