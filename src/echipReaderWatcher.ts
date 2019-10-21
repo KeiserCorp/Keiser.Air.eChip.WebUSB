@@ -1,5 +1,6 @@
+/// <reference types="w3c-web-usb" />
 import WebUSBDevice from './webUsbDevice'
-import EChipReader from './EChipReader'
+import EChipReader from './echipReader'
 import { TypedEvent, Listener } from './typedEvent'
 
 const ECHIP_READER_VENDOR_ID = 0x04FA

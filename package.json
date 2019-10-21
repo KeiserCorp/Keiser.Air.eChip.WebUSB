@@ -1,6 +1,6 @@
 {
   "name": "@keiser/echip-webusb",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Keiser Air eChip WebUSB Library",
   "keywords": [
     "keiser",
@@ -8,7 +8,6 @@
     "webusb",
     "1-wire"
   ],
-  "main": "index.js",
   "author": "Keiser Corporation",
   "license": "MIT",
   "repository": {
