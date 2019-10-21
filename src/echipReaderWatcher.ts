@@ -33,7 +33,7 @@ export default class EChipReaderWatcher extends WebUSBDevice {
   }
 
   protected async disconnected (device: USBDevice) {
-    this.onDisconnectEvent.emit(device)
     await super.disconnected(device)
+    this.onDisconnectEvent.emit(device)
   }
 }
