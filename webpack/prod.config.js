@@ -3,9 +3,12 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const WriteJsonPlugin = require('write-json-webpack-plugin')
 const DIST = path.resolve(__dirname, '../dist')
-const package = Object.assign(require('../package.json'), { private: false, devDependencies: {}, scripts: {} })
-package.main = 'index.js'
-package.types = './types/echipReaderWatcher.d.ts'
+const package = Object.assign(require('../package.json'), {
+  main: 'index.js',
+  private: false,
+  devDependencies: {},
+  scripts: {}
+})
 
 module.exports = {
   mode: 'production',

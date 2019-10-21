@@ -1,4 +1,3 @@
-/// <reference types="w3c-web-usb" />
 import WebUSBDevice from './webUsbDevice'
 import EChipReader from './echipReader'
 import { TypedEvent, Listener } from './typedEvent'

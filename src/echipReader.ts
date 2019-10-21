@@ -1,4 +1,3 @@
-/// <reference types="w3c-web-usb" />
 import Logger from './logger'
 import EChip from './echip'
 import OWDevice from './owDevice'
