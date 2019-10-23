@@ -74,7 +74,7 @@ new Vue({
     }
   },
   computed: {
-    echipDataHtml: function () {
+    echipDataHtml: function (): string {
       if (!this.echipData) {
         return ''
       }
