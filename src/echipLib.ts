@@ -291,7 +291,10 @@ const buildMachineSet = (modelValue: number, set: MachineSet, position: MachineP
 }
 
 const isValidData = (data: Uint8Array[]) => {
-  return data.every(page => {
+  return data.every((page, index) => {
+    if (~~(index / 2) % 16 === 15) {
+      return isCrcValid(page)
+    }
     return isEmptyPage(page) || isCrcValid(page)
   })
 }
