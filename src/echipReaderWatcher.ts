@@ -1,5 +1,6 @@
 import USBDevice from './usbDevice'
-import EChipReader from './EChipReader'
+import WebUSBDevice from './webUsbDevice'
+import EChipReader from './echipReader'
 import { TypedEvent, Listener } from './typedEvent'
 
 const ECHIP_READER_VENDOR_ID = 0x04FA
@@ -33,7 +34,7 @@ export default class EChipReaderWatcher extends USBDevice {
   }
 
   protected async disconnected (device: WebUSBDevice) {
-    this.onDisconnectEvent.emit(device)
     await super.disconnected(device)
+    this.onDisconnectEvent.emit(device)
   }
 }

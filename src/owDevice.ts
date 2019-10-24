@@ -116,20 +116,24 @@ export default class OWDevice {
 
   private async keySearch () {
     let validIds = []
-    let result = await this.romSearch()
+    try {
+      let result = await this.romSearch()
 
-    if (result.result) {
-      if (isValidKeyId(result.key)) {
-        validIds.push(result.key)
-      }
-
-      while (result.result && !result.lastDevice) {
-        result = await result.next()
-        if (result.result && isValidKeyId(result.key)) {
+      if (result.result) {
+        if (isValidKeyId(result.key)) {
           validIds.push(result.key)
         }
+
+        while (result.result && !result.lastDevice) {
+          result = await result.next()
+          if (result.result && isValidKeyId(result.key)) {
+            validIds.push(result.key)
+          }
+        }
+        this.onDetectKeys(validIds)
       }
-      this.onDetectKeys(validIds)
+    } catch (error) {
+      this.deviceReset()
     }
   }
 
@@ -505,6 +509,9 @@ export default class OWDevice {
         await this.deviceReset()
         return await keyReadAllSteps(false)
       }
+    } catch (error) {
+      Logger.error('Read All Failed: ' + error.message)
+      await this.deviceReset()
     } finally {
       releaseMutex()
       Logger.info('Read All Completed: ' + Math.round(performance.now() - start) + 'ms')
