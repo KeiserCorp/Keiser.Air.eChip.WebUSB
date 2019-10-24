@@ -24,4 +24,5 @@ jobs:
       run: |
         npm ci
     - name: Build and Publish
+      run: |
         npm run push
