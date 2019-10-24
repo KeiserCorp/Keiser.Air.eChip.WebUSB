@@ -20,9 +20,9 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-    - name: Install
-      run:  npm ci
-    - name: Build and Publish
+    - name: Install, Build, and Publish
       env:
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      run: npm run push
+      run: |
+        npm ci
+        npm run push
