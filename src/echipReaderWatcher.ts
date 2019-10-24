@@ -1,5 +1,4 @@
 import USBDevice from './usbDevice'
-import WebUSBDevice from './webUsbDevice'
 import EChipReader from './echipReader'
 import { TypedEvent, Listener } from './typedEvent'
 
