@@ -1,14 +1,16 @@
-export default class WebUSBDevice {
+import { nodeToWeb } from './transform'
+
+export default class USBDevice {
   private readonly vendorId: number
   private readonly productId: number
-  protected connectedDevices: Array<USBDevice > = []
+  protected connectedDevices: Array<WebUSBDevice> = []
 
   constructor (vendorId: number, productId: number) {
     this.vendorId = vendorId
     this.productId = productId
 
-    navigator.usb.addEventListener('connect', event => { this.attached(event) })
-    navigator.usb.addEventListener('disconnect', event => { this.detached(event) })
+    navigator.usb.addEventListener('connect', event => { this.attached(event as USBConnectionEvent) })
+    navigator.usb.addEventListener('disconnect', event => { this.detached(event as USBConnectionEvent) })
 
     this.checkDevices()
   }
@@ -22,6 +24,10 @@ export default class WebUSBDevice {
   }
 
   private async requestPermission () {
+    if (this.checkNodeDevices()) {
+      return
+    }
+
     let device
     try {
       device = await navigator.usb.requestDevice({
@@ -39,29 +45,52 @@ export default class WebUSBDevice {
   }
 
   private async checkDevices () {
+    if (this.checkNodeDevices()) {
+      return
+    }
+
     let devices = await navigator.usb.getDevices()
     devices.some(device => {
       if (this.matchesTarget(device)) {
         this.connected(device)
         return true
       }
-      return false
+      return
     })
   }
 
-  private attached (event: Event) {
-    if (event instanceof USBConnectionEvent && this.matchesTarget(event.device)) {
+  private checkNodeDevices () {
+    if (typeof window.node_usb === 'undefined') {
+      return false
+    }
+
+    let nodeUsbDevice
+    try {
+      nodeUsbDevice = window.node_usb.findByIds(this.vendorId, this.productId)
+    } catch { return false }
+
+    if (nodeUsbDevice) {
+      const webUsbDevice = nodeToWeb(nodeUsbDevice)
+      this.connected(webUsbDevice)
+      return true
+    }
+
+    return false
+  }
+
+  private attached (event: USBConnectionEvent) {
+    if (event.device && this.matchesTarget(event.device)) {
       this.connected(event.device)
     }
   }
 
-  private detached (event: Event) {
-    if (event instanceof USBConnectionEvent && this.matchesTarget(event.device) && this.isConnectedDevices(event.device)) {
+  private detached (event: USBConnectionEvent) {
+    if (event.device && this.matchesTarget(event.device) && this.isConnectedDevices(event.device)) {
       this.disconnected(event.device)
     }
   }
 
-  protected async connected (device: USBDevice) {
+  protected async connected (device: WebUSBDevice) {
     if (this.isConnectedDevices(device)) {
       throw new Error('USB Device already connected.')
     }
@@ -73,7 +102,7 @@ export default class WebUSBDevice {
     }
   }
 
-  protected async disconnected (device: USBDevice) {
+  protected async disconnected (device: WebUSBDevice) {
     let index = this.connectedDevices.indexOf(device)
     if (index >= 0) {
       try {
@@ -83,12 +112,12 @@ export default class WebUSBDevice {
     }
   }
 
-  private matchesTarget (device: USBDevice) {
+  private matchesTarget (device: WebUSBDevice) {
     return device.vendorId === this.vendorId &&
       device.productId === this.productId
   }
 
-  private isConnectedDevices (device: USBDevice) {
+  private isConnectedDevices (device: WebUSBDevice) {
     return this.connectedDevices.indexOf(device) >= 0
   }
 }

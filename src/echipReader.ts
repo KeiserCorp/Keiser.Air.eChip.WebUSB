@@ -7,14 +7,14 @@ export default class EChipReader {
   readonly claimed: Promise<boolean>
   private disposed: boolean = false
   private onDisconnectListener: Disposable | null = null
-  private usbDevice: USBDevice
+  private usbDevice: WebUSBDevice
   private owDevice: OWDevice
   private onEChipDetectEvent = new TypedEvent<EChip>()
   private onDisconnectEvent = new TypedEvent<null>()
   private activeKeys: Map<string,EChip> = new Map()
 
-  constructor (usbDevice: USBDevice, onDisconnect: (listener: Listener<USBDevice>) => Disposable) {
-    this.onDisconnectListener = onDisconnect((device: USBDevice) => this.disconnected(device))
+  constructor (usbDevice: WebUSBDevice, onDisconnect: (listener: Listener<WebUSBDevice>) => Disposable) {
+    this.onDisconnectListener = onDisconnect((device: WebUSBDevice) => this.disconnected(device))
     this.usbDevice = usbDevice
     this.owDevice = new OWDevice(usbDevice, (e: Array<Uint8Array>) => this.echipsDetected(e))
     this.claimed = this.owDevice.claim().then(() => {
@@ -55,7 +55,7 @@ export default class EChipReader {
     })
   }
 
-  protected disconnected (device: USBDevice) {
+  protected disconnected (device: WebUSBDevice) {
     if (this.usbDevice === device) {
       this.onDisconnectEvent.emit(null)
       this.dispose()

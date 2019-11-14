@@ -49,13 +49,13 @@ interface ROMSearchObject {
 export default class OWDevice {
   private mutex: Mutex = new Mutex()
   private searching: boolean = false
-  private usbDevice: USBDevice
+  private usbDevice: WebUSBDevice
   private interrupt: USBEndpoint
   private bulkIn: USBEndpoint
   private bulkOut: USBEndpoint
   private onDetectKeys: (keyRom: Array<Uint8Array>) => void
 
-  constructor (usbDevice: USBDevice, onDetectKeys: (keyId: Array<Uint8Array>) => void = (k: Array<Uint8Array>) => { return }) {
+  constructor (usbDevice: WebUSBDevice, onDetectKeys: (keyId: Array<Uint8Array>) => void = (k: Array<Uint8Array>) => { return }) {
     this.usbDevice = usbDevice
     this.onDetectKeys = onDetectKeys
     const altInterface = this.usbDevice.configurations[0].interfaces[0].alternates[ALT_INTERFACE]
@@ -89,13 +89,13 @@ export default class OWDevice {
 
   async close () {
     this.searching = false
-    if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
-      let releaseMutex = await this.mutex.acquire()
-      try {
+    let releaseMutex = await this.mutex.acquire()
+    try {
+      if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
         await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
-      } catch (error) { /*Ignore error*/ }
-      releaseMutex()
-    }
+      }
+    } catch (error) { console.log('Close: ' + error)/*Ignore error*/ }
+    releaseMutex()
   }
 
   private awaitKey () {
@@ -107,7 +107,7 @@ export default class OWDevice {
             this.keySearch(),
             timeoutPromise()
           ])
-        } catch (error) {/*Ignore error*/}
+        } catch (error) { console.log('Await: ' + error)/*Ignore error*/}
         releaseMutex()
         this.awaitKey()
       }
@@ -244,14 +244,14 @@ export default class OWDevice {
     let transfer = this.usbDevice.transferIn(this.bulkOut.endpointNumber, byteCount)
     let timeout = new Promise((r,e) => setTimeout(() => e(), TIMEOUT_INTERVAL))
     try {
-      let res = await Promise.race([
+      let res = await (Promise.race([
         transfer,
         timeout
-      ])
-      if (!(res instanceof USBInTransferResult) || res.status !== 'ok' || typeof res.data === 'undefined') {
+      ]) as Promise<USBInTransferResult>)
+      if (res.status !== 'ok' || !res.data) {
         throw new Error()
       }
-      return new Uint8Array(res.data.buffer)
+      return new Uint8Array(res.data.buffer, res.data.byteOffset, res.data.byteLength)
     } catch (error) {
       throw new Error('1-Wire Device read failed.')
     }
@@ -381,8 +381,10 @@ export default class OWDevice {
     const offsetMSB = (offset & 0xFF)
     const offsetLSB = (offset & 0xFF00) >> 8
     const endingOffset = data.length - 1
+    console.log('Starting Write')
 
     const keyWriteToScratch = async (keyRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) => {
+      console.log(`Write: ${offset} - ${data.byteLength}`)
       const keyWriteData = async (data: Uint8Array, offset: number = 0) => {
         const size = Math.min(BULK_SIZE, data.length - offset)
         const sendData = new Uint8Array(size)
