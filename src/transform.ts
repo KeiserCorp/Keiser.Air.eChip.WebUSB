@@ -212,10 +212,7 @@ class ConvertedUSBDevice {
     return new Promise((resolve, reject) => {
       this.nodeUsbDevice.reset((error?: string) => {
         if (error) {
-          if (error.toString() === 'Error: LIBUSB_ERROR_NO_DEVICE') {
-            let connectionEvent = new WebUSBConnectionEvent('disconnect', { device: this.asWebUSBDevice() } as USBConnectionEventInit)
-            navigator.usb.dispatchEvent(connectionEvent)
-          }
+          navigator.usb.dispatchEvent(new WebUSBConnectionEvent('disconnect', { device: this.asWebUSBDevice() }))
           return reject(error)
         }
         resolve()
