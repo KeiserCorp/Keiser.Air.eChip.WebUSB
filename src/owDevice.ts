@@ -89,13 +89,13 @@ export default class OWDevice {
 
   async close () {
     this.searching = false
-    if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
-      let releaseMutex = await this.mutex.acquire()
-      try {
+    let releaseMutex = await this.mutex.acquire()
+    try {
+      if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
         await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
-      } catch (error) { console.log('Close: ' + error)/*Ignore error*/ }
-      releaseMutex()
-    }
+      }
+    } catch (error) { console.log('Close: ' + error)/*Ignore error*/ }
+    releaseMutex()
   }
 
   private awaitKey () {
