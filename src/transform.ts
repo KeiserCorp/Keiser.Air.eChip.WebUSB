@@ -1,18 +1,19 @@
 import { NodeUSBDevice, ConfigDescriptor, InterfaceDescriptor, Interface, Endpoint, LibUSBException, InEndpoint, OutEndpoint } from '../types/node-usb'
+import { WebUSBConnectionEvent } from './typedEvent'
 
 class ConvertedUSBDevice {
   private nodeUsbDevice: NodeUSBDevice
-  // readonly usbVersionMajor: number
-  // readonly usbVersionMinor: number
-  // readonly usbVersionSubminor: number
+  // readonly usbVersionMajor: number = 0
+  // readonly usbVersionMinor: number = 0
+  // readonly usbVersionSubminor: number = 0
   readonly deviceClass: number
   readonly deviceSubclass: number
   readonly deviceProtocol: number
   readonly vendorId: number
   readonly productId: number
-  // readonly deviceVersionMajor: number
-  // readonly deviceVersionMinor: number
-  // readonly deviceVersionSubminor: number
+  // readonly deviceVersionMajor: number = 0
+  // readonly deviceVersionMinor: number = 0
+  // readonly deviceVersionSubminor: number = 0
   // readonly manufacturerName?: string
   // readonly productName?: string
   // readonly serialNumber?: string
@@ -26,8 +27,6 @@ class ConvertedUSBDevice {
     this.deviceProtocol = nodeUsbDevice.deviceDescriptor.bDeviceProtocol
     this.vendorId = nodeUsbDevice.deviceDescriptor.idVendor
     this.productId = nodeUsbDevice.deviceDescriptor.idProduct
-
-    console.log(nodeUsbDevice)
   }
 
   get configuration () {
@@ -213,11 +212,19 @@ class ConvertedUSBDevice {
     return new Promise((resolve, reject) => {
       this.nodeUsbDevice.reset((error?: string) => {
         if (error) {
+          if (error.toString() === 'Error: LIBUSB_ERROR_NO_DEVICE') {
+            let connectionEvent = new WebUSBConnectionEvent('disconnect', { device: this.asWebUSBDevice() } as USBConnectionEventInit)
+            navigator.usb.dispatchEvent(connectionEvent)
+          }
           return reject(error)
         }
         resolve()
       })
     })
+  }
+
+  private asWebUSBDevice () {
+    return (this as unknown) as WebUSBDevice
   }
 
   private configurationTransform (config: ConfigDescriptor) {

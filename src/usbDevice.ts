@@ -9,8 +9,8 @@ export default class USBDevice {
     this.vendorId = vendorId
     this.productId = productId
 
-    navigator.usb.addEventListener('connect', event => { this.attached(event) })
-    navigator.usb.addEventListener('disconnect', event => { this.detached(event) })
+    navigator.usb.addEventListener('connect', event => { this.attached(event as USBConnectionEvent) })
+    navigator.usb.addEventListener('disconnect', event => { this.detached(event as USBConnectionEvent) })
 
     this.checkDevices()
   }
@@ -24,7 +24,9 @@ export default class USBDevice {
   }
 
   private async requestPermission () {
-    await this.checkNodeDevices()
+    if (this.checkNodeDevices()) {
+      return
+    }
 
     let device
     try {
@@ -43,7 +45,9 @@ export default class USBDevice {
   }
 
   private async checkDevices () {
-    await this.checkNodeDevices()
+    if (this.checkNodeDevices()) {
+      return
+    }
 
     let devices = await navigator.usb.getDevices()
     devices.some(device => {
@@ -51,34 +55,37 @@ export default class USBDevice {
         this.connected(device)
         return true
       }
-      return false
+      return
     })
   }
 
-  private async checkNodeDevices () {
+  private checkNodeDevices () {
     if (typeof window.node_usb === 'undefined') {
-      return
+      return false
     }
 
     let nodeUsbDevice
     try {
       nodeUsbDevice = window.node_usb.findByIds(this.vendorId, this.productId)
-    } catch { return }
+    } catch { return false }
 
     if (nodeUsbDevice) {
       const webUsbDevice = nodeToWeb(nodeUsbDevice)
       this.connected(webUsbDevice)
+      return true
     }
+
+    return false
   }
 
-  private attached (event: Event) {
-    if (event instanceof USBConnectionEvent && this.matchesTarget(event.device)) {
+  private attached (event: USBConnectionEvent) {
+    if (event.device && this.matchesTarget(event.device)) {
       this.connected(event.device)
     }
   }
 
-  private detached (event: Event) {
-    if (event instanceof USBConnectionEvent && this.matchesTarget(event.device) && this.isConnectedDevices(event.device)) {
+  private detached (event: USBConnectionEvent) {
+    if (event.device && this.matchesTarget(event.device) && this.isConnectedDevices(event.device)) {
       this.disconnected(event.device)
     }
   }

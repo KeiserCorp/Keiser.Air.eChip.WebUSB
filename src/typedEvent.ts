@@ -25,3 +25,12 @@ export class TypedEvent<T> {
     this.listeners.forEach(listener => listener(event))
   }
 }
+
+export class WebUSBConnectionEvent extends Event {
+  readonly device: WebUSBDevice
+
+  constructor (type: string, eventInitDict: USBConnectionEventInit) {
+    super(type)
+    this.device = eventInitDict.device
+  }
+}
