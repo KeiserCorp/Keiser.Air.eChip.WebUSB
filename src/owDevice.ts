@@ -251,7 +251,7 @@ export default class OWDevice {
       if (res.status !== 'ok' || !res.data) {
         throw new Error()
       }
-      return new Uint8Array(res.data.buffer)
+      return new Uint8Array(res.data.buffer, res.data.byteOffset, res.data.byteLength)
     } catch (error) {
       throw new Error('1-Wire Device read failed.')
     }

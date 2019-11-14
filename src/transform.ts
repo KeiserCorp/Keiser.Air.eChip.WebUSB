@@ -177,7 +177,7 @@ class ConvertedUSBDevice {
           return reject(error.message)
         }
         resolve({
-          data: new DataView(data.buffer),
+          data: new DataView(data.buffer, 0, data.length),
           status: 'ok'
         } as USBInTransferResult)
       })
