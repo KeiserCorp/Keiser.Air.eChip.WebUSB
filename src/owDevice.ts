@@ -8,7 +8,7 @@ const TIMEOUT_INTERVAL = 200
 const ALT_INTERFACE = 1
 
 const isValidKeyId = (keyId: Uint8Array) => {
-  return keyId[0] === 0x0C && keyId[7] !== 0
+  return (keyId[0] === 0x0C && keyId[7] !== 0) || (keyId[0] === 0x24 && keyId[7] !== 0) || (keyId[0] === 0x2D && keyId[7] !== 0)
 }
 
 const timeoutPromise: () => Promise<void> = () => {
@@ -516,5 +516,54 @@ export default class OWDevice {
       releaseMutex()
       Logger.info('Read All Completed: ' + Math.round(performance.now() - start) + 'ms')
     }
+  }
+
+  async writeTZOffset (keyRom: Uint8Array, data: Uint8Array, offMSB: number, offLSB: number) {
+    await this.reset()
+    await this.romCommand(keyRom, false)
+    await this.write(new Uint8Array([0x0F, offMSB, offLSB,...data]), true)
+
+    await this.reset()
+
+    await this.romCommand(keyRom, false)
+    await this.write(new Uint8Array([0xAA, offMSB, offLSB, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]), false)
+
+    await this.read(1)
+
+    let result = []
+    do {
+      result.push((await this.read(1))[0])
+    } while (result.length < 3)
+
+    let result2 = []
+    do {
+      result2.push((await this.read(1))[0])
+    } while (result2.length < 8)
+
+    await this.reset()
+
+    await this.romCommand(keyRom, false)
+    await this.write(new Uint8Array([0x55,...result, 0xFF]), true)
+
+    let c = true
+    do {
+      c = (await this.read(1))[0] === 0xAA
+    } while (c)
+
+    await this.reset()
+
+    await this.romCommand(keyRom, false)
+    await this.write(new Uint8Array([0xF0, offMSB, offLSB]), false)
+    await this.read(144)
+    await this.reset()
+  }
+
+  async writeRTC (keyRom: Uint8Array, data: Uint8Array) {
+    await this.reset()
+    await this.romCommand(keyRom, false)
+    const writeCommand = new Uint8Array([0x99])
+    await this.write(writeCommand, true)
+    await this.write(data, false)
+    await this.reset()
   }
 }

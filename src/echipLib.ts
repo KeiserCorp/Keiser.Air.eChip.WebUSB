@@ -497,6 +497,41 @@ const buildMachineTestData = (test: MachineTest, page: Uint8Array) => {
   }
 }
 
+export function getTzStr () {
+
+  const tzstr = 'timezone'
+  let data = []
+  // Pushes timezone string in ascii to first (8 bytes)
+  for (let i = 0; i < tzstr.length; i++) {
+    const tzi = (tzstr.charAt(i).charCodeAt(0))
+    data.push(tzi)
+  }
+
+  let bitArray = new Uint8Array(data)
+  return bitArray
+}
+
+export function getTzOffset () {
+  let setTZ = new Date()
+  let currentTZ = setTZ.getTimezoneOffset()
+  let data = intToByte(currentTZ)
+
+  for (let i = 0; i < 4; i++) {
+    data.push(0xFF)
+  }
+
+  let bitArray = new Uint8Array(data)
+
+  return bitArray
+}
+
+export function currentTime () {
+  let data = dateToByte(new Date())
+  data.unshift(0x0C) // Append Device Control Byte (12)
+  let bitArray = new Uint8Array(data)
+  return bitArray
+}
+
 const unpackData = (page: Uint8Array, offset: number) => {
   return {
     power : page[offset] + ((page[offset + 2] & 0x1F) << 8),
