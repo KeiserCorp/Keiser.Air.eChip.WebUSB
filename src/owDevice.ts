@@ -519,8 +519,10 @@ export default class OWDevice {
   }
 
   async writeTZOffset (keyRom: Uint8Array, data: Uint8Array, offMSB: number, offLSB: number) {
+
     await this.reset()
     await this.romCommand(keyRom, false)
+
     await this.write(new Uint8Array([0x0F, offMSB, offLSB,...data]), true)
 
     await this.reset()
@@ -535,27 +537,25 @@ export default class OWDevice {
       result.push((await this.read(1))[0])
     } while (result.length < 3)
 
+    console.log(result)
+
     let result2 = []
     do {
       result2.push((await this.read(1))[0])
     } while (result2.length < 8)
 
-    await this.reset()
+    if (result[2] !== 0x07) {
+      return false
+    }
 
-    await this.romCommand(keyRom, false)
-    await this.write(new Uint8Array([0x55,...result, 0xFF]), true)
-
-    let c = true
-    do {
-      c = (await this.read(1))[0] === 0xAA
-    } while (c)
+    console.log(result2)
 
     await this.reset()
 
     await this.romCommand(keyRom, false)
-    await this.write(new Uint8Array([0xF0, offMSB, offLSB]), false)
-    await this.read(144)
-    await this.reset()
+    await this.write(new Uint8Array([0x55,...result]), true)
+
+    return true
   }
 
   async writeRTC (keyRom: Uint8Array, data: Uint8Array) {

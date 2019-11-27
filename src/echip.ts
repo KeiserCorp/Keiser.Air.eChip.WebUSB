@@ -1,7 +1,7 @@
 import Logger from './logger'
 import OWDevice from './owDevice'
 import EChipConnection from './echipConnection'
-import { EChipBuilder, EChipParser, EChipObject, MachineObject } from './echipLib'
+import { EChipBuilder, EChipParser, EChipObject, MachineObject, getTzStr, getTzOffset } from './echipLib'
 import { Listener, Disposable } from './typedEvent'
 
 export default class EChip extends EChipConnection {
@@ -54,9 +54,29 @@ export default class EChip extends EChipConnection {
     Logger.info('EChip disconnected: ' + this.id)
   }
 
+  async setTZOffset () {
+    let tzString = getTzStr()
+    let tzOffset = getTzOffset()
+    console.log(tzOffset)
+
+    let resultTZString = false
+
+    while (!resultTZString) {
+      resultTZString = await this.owDevice.writeTZOffset(this.echipId, tzString, 0x00, 0x00)
+    }
+
+    let resultTZOffset = false
+    while (!resultTZOffset) {
+      resultTZOffset = await this.owDevice.writeTZOffset(this.echipId, tzOffset, 0x08, 0x00)
+    }
+
+    this.loadData()
+  }
+
   private async loadData () {
     let raw = await this.owDevice.keyReadAll(this.echipId, false)
     let echipData = EChipParser(raw)
+    console.log(raw)
     if (!echipData.validStructure) {
       Logger.warn('Invalid Data Structure')
     }

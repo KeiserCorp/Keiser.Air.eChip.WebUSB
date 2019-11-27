@@ -513,7 +513,7 @@ export function getTzStr () {
 
 export function getTzOffset () {
   let setTZ = new Date()
-  let currentTZ = setTZ.getTimezoneOffset()
+  let currentTZ = (setTZ.getTimezoneOffset()) * 60
   let data = intToByte(currentTZ)
 
   for (let i = 0; i < 4; i++) {

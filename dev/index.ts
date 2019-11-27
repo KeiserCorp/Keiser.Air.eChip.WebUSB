@@ -61,6 +61,11 @@ new Vue({
         }
       }
     },
+    async setTZ () {
+      if (this.echip) {
+        this.echip.setTZOffset()
+      }
+    },
     async clear () {
       if (this.echip) {
         this.echipData = null

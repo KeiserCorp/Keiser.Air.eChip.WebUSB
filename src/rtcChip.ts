@@ -14,7 +14,7 @@ export default class RTCChip extends EChipConnection {
     this.echipId = echipId
     this.owDevice = owDevice
     this.data = this.loadData()
-    Logger.info('EChip connected: ' + this.id)
+    Logger.info('(RTC) Blue Chip connected: ' + this.id)
 
     try {
       this.setRTC()

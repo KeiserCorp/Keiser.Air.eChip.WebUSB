@@ -14,7 +14,7 @@ export default class TZChip extends EChipConnection {
     this.echipId = echipId
     this.owDevice = owDevice
     this.data = this.loadData()
-    Logger.info('EChip connected: ' + this.id)
+    Logger.info('(Timezone) Green Chip connected: ' + this.id)
   }
 
   get id () {
@@ -37,8 +37,9 @@ export default class TZChip extends EChipConnection {
   async setTZOffset () {
     let tzString = getTzStr()
     let tzOffset = getTzOffset()
+    console.log(tzOffset)
     await this.owDevice.writeTZOffset(this.echipId, tzString, 0x00, 0x00)
-    await this.owDevice.writeTZOffset(this.echipId, tzOffset, 0x08, 0x00)
+    // await this.owDevice.writeTZOffset(this.echipId, tzOffset, 0x08, 0x00)
   }
 
   private async loadData () {

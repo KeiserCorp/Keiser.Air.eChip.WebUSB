@@ -12,8 +12,8 @@ export default class EChipReader {
   private usbDevice: WebUSBDevice
   private owDevice: OWDevice
   private onEChipDetectEvent = new TypedEvent<EChip>()
-  private onTZChipDetectEvent = new TypedEvent<TZChip>()
-  private onRTCChipDetectEvent = new TypedEvent<RTCChip>()
+  // private onTZChipDetectEvent = new TypedEvent<TZChip>()
+  // private onRTCChipDetectEvent = new TypedEvent<RTCChip>()
   private onDisconnectEvent = new TypedEvent<null>()
   private activeKeys: Map<string,EChip> = new Map()
 
@@ -39,13 +39,13 @@ export default class EChipReader {
     this.onEChipDetectEvent.on(listener)
   }
 
-  onTZChipDetect (listener: Listener<TZChip>) {
-    this.onTZChipDetectEvent.on(listener)
-  }
+  // onTZChipDetect (listener: Listener<TZChip>) {
+  //   this.onTZChipDetectEvent.on(listener)
+  // }
 
-  onRTCChipDetect (listener: Listener<RTCChip>) {
-    this.onRTCChipDetectEvent.on(listener)
-  }
+  // onRTCChipDetect (listener: Listener<RTCChip>) {
+  //   this.onRTCChipDetectEvent.on(listener)
+  // }
 
   private echipsDetected (echipIds: Array<Uint8Array>) {
     let validIds: Array<string> = []
@@ -59,7 +59,7 @@ export default class EChipReader {
 
         let echip: any
         switch (echipType) {
-          case 12:
+          case 45:
             echip = new EChip(echipId, this.owDevice, (l: Listener<null>) => this.onDisconnect(l))
             this.activeKeys.set(echipIdString, echip)
             this.onEChipDetectEvent.emit(echip)
@@ -67,15 +67,14 @@ export default class EChipReader {
           case 36:
             echip = new RTCChip(echipId, this.owDevice, (l: Listener<null>) => this.onDisconnect(l))
             this.activeKeys.set(echipIdString, echip)
-            this.onRTCChipDetectEvent.emit(echip)
+            this.onEChipDetectEvent.emit(echip)
             break
-          case 45:
+          case 12:
             echip = new TZChip(echipId, this.owDevice, (l: Listener<null>) => this.onDisconnect(l))
             this.activeKeys.set(echipIdString, echip)
-            this.onTZChipDetectEvent.emit(echip)
+            this.onEChipDetectEvent.emit(echip)
             break
         }
-
       }
     })
 
