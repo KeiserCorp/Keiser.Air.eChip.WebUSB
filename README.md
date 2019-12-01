@@ -107,8 +107,9 @@ The `EChipReaderWatcher` is a singleton class which handles the USB device monit
 #### Properties
 | Name | Parameters | Return Type | Usage |
 | ---- | ---------- | ----------- | ----- |
-| `onConnect` | `Listener<EChipReader>` | `Disposable` | Adds an event listener for when an eChip Reader Device is connected |
-
+| `onConnect` | `Listener<EChipReader>` | `Disposable` | Adds an event listener for when an eChip Reader Device is connected. |
+| `start` | | `Promise<void>` | Initializes the watcher by first requesting permissions and then doing a hardware search. |
+| `stop` | | `Promise<void>` | Closes all active connections. |
 
 ```ts
 import EChipReaderWatcher from '@keiser/echip-webusb'
@@ -128,15 +129,6 @@ document.addEventListener('DOMContentLoaded', event => {
 
   EChipReaderWatcher.onConnect((echipReader) => {
     console.log('EChip Reader Connected 😄')
-
-    echipReader.onEChipDetect(async (echip) => {
-      console.log('EChip Connected: ' + echip.id)
-      console.log(await echip.getData())
-    })
-
-    echipReader.onDisconnect(() => {
-      console.log('EChip Reader Disconnected 😞')
-    })
   })
 })
 ```

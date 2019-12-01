@@ -13,8 +13,8 @@ export class EChipReaderWatcher extends USBDevice {
     super(ECHIP_READER_VENDOR_ID, ECHIP_READER_PRODUCT_ID)
   }
 
-  stop () {
-    this.connectedDevices.forEach(d => this.disconnected(d))
+  async stop () {
+    await Promise.all(this.connectedDevices.map(d => this.disconnected(d)))
   }
 
   onConnect (listener: Listener<EChipReader>): Disposable {
