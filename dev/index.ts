@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import EChipReaderWatcher from '../src/echipReaderWatcher'
-import EChipReader from '../src/echipReader'
-import EChip from '../src/echip'
+import { EChipReader } from '../src/echipReader'
+import { EChip } from '../src/echip'
 import { EChipObject } from '../src/echipLib'
 import SyntaxHighlight from './syntax'
 import { SET_2 } from './test'
@@ -13,7 +13,7 @@ new Vue({
     this.echipReaderWatcher.onConnect(this.echipReaderConnected)
   },
   data: {
-    echipReaderWatcher: new EChipReaderWatcher(),
+    echipReaderWatcher: EChipReaderWatcher,
     echipReader: null as EChipReader | null,
     echip: null as EChip | null,
     echipData: null as EChipObject | null

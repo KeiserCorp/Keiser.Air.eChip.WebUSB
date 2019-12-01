@@ -5,7 +5,7 @@ import { TypedEvent, Listener, Disposable } from './typedEvent'
 const ECHIP_READER_VENDOR_ID = 0x04FA
 const ECHIP_READER_PRODUCT_ID = 0x2490
 
-export default class EChipReaderWatcher extends USBDevice {
+export class EChipReaderWatcher extends USBDevice {
   private onConnectEvent = new TypedEvent<EChipReader>()
   private onDisconnectEvent = new TypedEvent<WebUSBDevice>()
 
@@ -37,3 +37,5 @@ export default class EChipReaderWatcher extends USBDevice {
     this.onDisconnectEvent.emit(device)
   }
 }
+
+export default new EChipReaderWatcher()
