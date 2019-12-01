@@ -1,9 +1,9 @@
-import Logger from './logger'
-import EChip from './echip'
-import OWDevice from './owDevice'
+import { Logger } from './logger'
+import { EChip } from './echip'
+import { OWDevice } from './owDevice'
 import { TypedEvent, Listener, Disposable } from './typedEvent'
 
-export default class EChipReader {
+export class EChipReader {
   readonly claimed: Promise<boolean>
   private disposed: boolean = false
   private onDisconnectListener: Disposable | null = null

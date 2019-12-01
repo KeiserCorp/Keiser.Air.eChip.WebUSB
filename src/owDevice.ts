@@ -1,4 +1,4 @@
-import Logger from './logger'
+import { Logger } from './logger'
 import crc81wire from 'crc/crc81wire'
 import { Mutex } from 'async-mutex'
 
@@ -46,7 +46,7 @@ interface ROMSearchObject {
   lastDiscrepancy: number
 }
 
-export default class OWDevice {
+export class OWDevice {
   private mutex: Mutex = new Mutex()
   private searching: boolean = false
   private usbDevice: WebUSBDevice

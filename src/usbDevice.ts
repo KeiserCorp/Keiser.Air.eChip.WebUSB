@@ -1,6 +1,6 @@
 import { nodeToWeb } from './transform'
 
-export default class USBDevice {
+export class USBDevice {
   private readonly vendorId: number
   private readonly productId: number
   protected connectedDevices: Array<WebUSBDevice> = []

@@ -1,6 +1,6 @@
-import USBDevice from './usbDevice'
-import EChipReader from './echipReader'
-import { TypedEvent, Listener } from './typedEvent'
+import { USBDevice } from './usbDevice'
+import { EChipReader } from './echipReader'
+import { TypedEvent, Listener, Disposable } from './typedEvent'
 
 const ECHIP_READER_VENDOR_ID = 0x04FA
 const ECHIP_READER_PRODUCT_ID = 0x2490
@@ -17,7 +17,7 @@ export default class EChipReaderWatcher extends USBDevice {
     this.connectedDevices.forEach(d => this.disconnected(d))
   }
 
-  onConnect (listener: Listener<EChipReader>) {
+  onConnect (listener: Listener<EChipReader>): Disposable {
     return this.onConnectEvent.on(listener)
   }
 

@@ -1,10 +1,10 @@
-import Logger from './logger'
-import OWDevice from './owDevice'
-import EChipConnection from './echipConnection'
+import { Logger } from './logger'
+import { OWDevice } from './owDevice'
+import { EChipConnection } from './echipConnection'
 import { EChipBuilder, EChipParser, EChipObject, MachineObject } from './echipLib'
 import { Listener, Disposable } from './typedEvent'
 
-export default class EChip extends EChipConnection {
+export class EChip extends EChipConnection {
   private echipId: Uint8Array
   private owDevice: OWDevice
   private data: Promise<EChipObject>
