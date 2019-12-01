@@ -44,6 +44,7 @@ module.exports = {
   ],
   output: {
     filename: 'index.js',
+    types: './types/echipReaderWatcher.d.ts',
     path: DIST,
     libraryTarget: 'umd',
     library: 'EChip'
