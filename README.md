@@ -1,5 +1,5 @@
 # Keiser Air eChip WebUSB Library
-![](https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB/workflows/Publish%20NPM/badge.svg)
+![](https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB/workflows/Publish%20NPM/badge.svg?branch=production)
 
 ## Project
 This library handles communication with the EChip USB reader using WebUSB.
