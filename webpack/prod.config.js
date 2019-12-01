@@ -6,6 +6,7 @@ const CreateFileWebpack = require('create-file-webpack')
 const DIST = path.resolve(__dirname, '../dist')
 const package = Object.assign(require('../package.json'), {
   main: 'index.js',
+  types: './types/echipReaderWatcher.d.ts',
   private: false,
   devDependencies: {},
   scripts: {}
@@ -44,7 +45,6 @@ module.exports = {
   ],
   output: {
     filename: 'index.js',
-    types: './types/echipReaderWatcher.d.ts',
     path: DIST,
     libraryTarget: 'umd',
     library: 'EChip'
