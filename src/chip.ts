@@ -1,11 +1,12 @@
 import Logger from './logger'
 import OWDevice from './owDevice'
 import EChipConnection from './echipConnection'
-import { Listener, Disposable } from './typedEvent'
+import { Listener, Disposable, TypedEvent } from './typedEvent'
 
 export default class Chip extends EChipConnection {
   echipId: Uint8Array
   private type: number
+  private onWriteFinishedEvent = new TypedEvent<null>()
 
   constructor (echipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(onDisconnect)
@@ -15,7 +16,7 @@ export default class Chip extends EChipConnection {
     switch (this.type) {
       case 12: Logger.info('EChip connected: ' + this.id)
         break
-      case 36: Logger.info('(RTC) Blue Chip connected: ' + this.id)
+      case 36: Logger.info('(Time & Date) Blue Chip connected: ' + this.id)
         break
       case 45: Logger.info('(Timezone) Green Chip connected: ' + this.id)
     }
@@ -33,12 +34,20 @@ export default class Chip extends EChipConnection {
     this.disconnected()
   }
 
+  onWriteFinished (listener: Listener<null>) {
+    return this.onWriteFinishedEvent.on(listener)
+  }
+
+  protected finished () {
+    this.onWriteFinishedEvent.emit(null)
+  }
+
   protected async dispose () {
     super.dispose()
     switch (this.type) {
       case 12: Logger.info('EChip disconnected: ' + this.id)
         break
-      case 36: Logger.info('(RTC) Blue Chip disconnected: ' + this.id)
+      case 36: Logger.info('(Time & Date) Blue Chip disconnected: ' + this.id)
         break
       case 45: Logger.info('(Timezone) Green Chip disconnected: ' + this.id)
     }

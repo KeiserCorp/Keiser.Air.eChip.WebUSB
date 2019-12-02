@@ -26,6 +26,7 @@ export default class RTCChip extends Chip {
     await this.owDevice.writeRTC(this.echipId, newTime)
 
     Logger.info('Finished Write (Time & Date): ' + + Math.round(performance.now() - this.start) + 'ms')
+    this.finished()
   }
 
 }

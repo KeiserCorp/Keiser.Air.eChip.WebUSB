@@ -36,6 +36,7 @@ export default class TZChip extends Chip {
     }
 
     Logger.info('Finished Write (Timezone): ' + Math.round(performance.now() - this.start) + 'ms')
+    this.finished()
   }
 
 }
