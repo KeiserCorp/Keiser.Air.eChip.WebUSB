@@ -2,8 +2,6 @@ import Vue from 'vue'
 import EChipReaderWatcher from '../src/echipReaderWatcher'
 import EChipReader from '../src/echipReader'
 import EChip from '../src/echip'
-import TZChip from '../src/tzChip'
-import RTCChip from '../src/rtcChip'
 import { EChipObject } from '../src/echipLib'
 import SyntaxHighlight from './syntax'
 import { SET_2 } from './test'
@@ -18,8 +16,6 @@ new Vue({
     echipReaderWatcher: new EChipReaderWatcher(),
     echipReader: null as EChipReader | null,
     echip: null as EChip | null,
-    rtcChip: null as RTCChip | null,
-    tzChip: null as TZChip | null,
     echipData: null as EChipObject | null
   },
   methods: {
@@ -41,8 +37,6 @@ new Vue({
       this.echipReader = echipReader
       this.echipReader.onDisconnect(this.echipReaderDisconnected)
       this.echipReader.onEChipDetect(this.echipDetected)
-      this.echipReader.onTZChipDetect(this.tzChipDetected)
-      this.echipReader.onRTCChipDetect(this.rtcChipDetected)
     },
     echipReaderDisconnected () {
       this.echipReader = null
@@ -52,20 +46,8 @@ new Vue({
       this.echip.onDisconnect(this.echipDisconnected)
       this.echipData = await this.echip.getData()
     },
-    async rtcChipDetected (rtcChip: RTCChip) {
-      this.rtcChip = rtcChip
-      this.rtcChip.onDisconnect(this.echipDisconnected)
-      this.echipData = await this.rtcChip.getData()
-    },
-    async tzChipDetected (tzChip: TZChip) {
-      this.tzChip = tzChip
-      this.tzChip.onDisconnect(this.echipDisconnected)
-      this.echipData = await this.tzChip.getData()
-    },
     echipDisconnected () {
       this.echip = null
-      this.rtcChip = null
-      this.tzChip = null
       this.echipData = null
     },
     async set () {

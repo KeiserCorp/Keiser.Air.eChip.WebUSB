@@ -519,9 +519,7 @@ export default class OWDevice {
   }
 
   async writeTZOffset (keyRom: Uint8Array, data: Uint8Array, offMSB: number, offLSB: number) {
-
     try {
-
       await this.reset()
       await this.romCommand(keyRom, false)
 
@@ -555,7 +553,7 @@ export default class OWDevice {
     } catch (error) {
       await this.writeTZOffset(keyRom, data, offMSB, offLSB)
     }
-
+    await this.deviceReset()
     return true
   }
 
