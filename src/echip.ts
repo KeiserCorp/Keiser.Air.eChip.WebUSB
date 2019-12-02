@@ -4,7 +4,10 @@ import { EChipConnection } from './echipConnection'
 import { EChipBuilder, EChipParser, EChipObject, MachineObject } from './echipLib'
 import { Listener, Disposable } from './typedEvent'
 
-const invalidResultGenerator = (): Promise<EChipObject> => new Promise(r => r({ machineData: {}, rawData: [], validStructure: false } as EChipObject))
+const invalidResultGenerator = () => Promise.resolve({ machineData: {}, rawData: [], validStructure: false } as EChipObject)
+const compareResults = (srcData: Array<Uint8Array>, resData: Array<Uint8Array>) => {
+  return srcData.every((page, pageIndex) => page.every((byte, index) => byte === resData[pageIndex][index]))
+}
 
 export class EChip extends EChipConnection {
   private echipId: Uint8Array
@@ -37,14 +40,18 @@ export class EChip extends EChipConnection {
       let oldData = (await this.data).rawData
       await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
     } catch (error) {
-      console.log('Diff write failed. Retrying using full write.')
+      console.warn('Clear diff write failed. Retrying using full write.')
       try {
         await this.owDevice.keyWriteAll(this.echipId, newData, false)
       } catch (error) {
         this.data = invalidResultGenerator()
         throw error
       }
-      this.data = new Promise(r => r(EChipParser(newData)))
+    }
+    await (this.data = this.loadData())
+    const resultsMatch = compareResults(newData, (await this.data).rawData)
+    if (!resultsMatch) {
+      throw new Error('Write was unsuccesful. Data targets do not match.')
     }
   }
 
@@ -57,7 +64,11 @@ export class EChip extends EChipConnection {
       this.data = invalidResultGenerator()
       throw error
     }
-    this.data = new Promise(r => r(EChipParser(newData)))
+    await (this.data = this.loadData())
+    const resultsMatch = compareResults(newData, (await this.data).rawData)
+    if (!resultsMatch) {
+      throw new Error('Write was unsuccesful. Data targets do not match.')
+    }
   }
 
   protected dispose () {

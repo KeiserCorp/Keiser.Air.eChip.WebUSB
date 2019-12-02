@@ -108,7 +108,7 @@ export class OWDevice {
 
     let releaseMutex = await this.mutex.acquire()
     try {
-      timeoutPolicy.execute(async () => this.keySearch())
+      await timeoutPolicy.execute(async () => this.keySearch())
     } catch (error) {
       console.warn(`Await Key Error: ${error}`)
       await this.deviceReset()

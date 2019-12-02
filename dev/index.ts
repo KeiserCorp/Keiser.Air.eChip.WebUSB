@@ -75,7 +75,7 @@ new Vue({
   },
   computed: {
     echipDataHtml: function (): string {
-      if (!this.echipData) {
+      if (!this.echipData || !this.echipData.validStructure) {
         return ''
       }
       return SyntaxHighlight(this.echipData.machineData)
