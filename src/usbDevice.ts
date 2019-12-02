@@ -30,7 +30,7 @@ export class USBDevice {
   }
 
   private async requestPermission () {
-    if (this.checkNodeDevices()) {
+    if (await this.checkNodeDevices()) {
       return
     }
 
@@ -55,7 +55,7 @@ export class USBDevice {
   }
 
   private async checkDevices () {
-    if (this.checkNodeDevices()) {
+    if (await this.checkNodeDevices()) {
       return
     }
 
