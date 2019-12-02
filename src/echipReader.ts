@@ -32,7 +32,7 @@ export class EChipReader {
   }
 
   onEChipDetect (listener: Listener<EChip>) {
-    this.onEChipDetectEvent.on(listener)
+    return this.onEChipDetectEvent.on(listener)
   }
 
   private echipsDetected (echipIds: Array<Uint8Array>) {

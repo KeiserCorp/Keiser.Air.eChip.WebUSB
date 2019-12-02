@@ -124,8 +124,8 @@ The `EChipReader` instance is passed into the `onConnect` callback function and 
 #### Methods
 | Name | Usage |
 | ---- | ----- |
-| `onDisconnect(Listener<null>): Disposable` | Adds an event listener for when this eChip Reader Device becomes disconnected. The instance will be disposed after following this event. |
-| `onEChipDetect(Listener<EChip>): void` | Adds an event listener for when an eChip is connected to the eChip Reader device. Callback method will be passed the new `EChip` instance for the connected eChip. |
+| `onDisconnect(Listener<null>): Disposable` | Adds an event listener for when this eChip Reader Device becomes disconnected. The instance will be disposed following this event. |
+| `onEChipDetect(Listener<EChip>): Disposable` | Adds an event listener for when an eChip is connected to the eChip Reader device. Callback method will be passed the new `EChip` instance for the connected eChip. |
 
 ### EChip
 
@@ -135,11 +135,13 @@ The `EChip` instance is passed into the `onEChipDetect` callback function and is
 | Name | Usage |
 | ---- | ----- |
 | `id: string` | UUID string of the eChip. |
+| `disposed: boolean` | Indicates if the eChip connection has been severed and the class instance disposed. |
 
 #### Methods
 | Name | Usage |
 | ---- | ----- |
 | `destroy(): void` | Called to disconnect the eChip device. |
+| `onDisconnect(Listener<null>): Disposable` | Adds an event listener for when this eChip becomes disconnected. The instance will be disposed following this event. |
 | `getData(): Promise<EChipObject>` | Promise resolves with an `EChipObject` representing the data on the eChip. |
 | `clearData(): Promise<EChipObject>` | Method clears the data on the eChip and resolves with an `EChipObject` of the new blank eChip data. |
 | `setData({string: MachineObject}): Promise<EChipObject>` | Method sets the data on the eChip according to the data passed into the method.  The method accepts an object with `string` keys corresponding to the machine's 4-digit model number with the `MachineObject` as the value of the property. |
