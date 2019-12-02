@@ -418,7 +418,7 @@ export class OWDevice {
       }
     }
 
-    await this.setSpeed(false)
+    await this.setSpeed(overdrive)
     await keyWriteToScratch(keyRom, offset, data, overdrive)
     await this.reset()
     await this.romMatch(keyRom, overdrive)
@@ -495,7 +495,7 @@ export class OWDevice {
     }
 
     const keyReadAllSteps = async (overdrive: boolean) => {
-      await this.setSpeed(false)
+      await this.setSpeed(overdrive)
       await this.reset()
       await this.romMatch(keyRom, overdrive)
       const writeCommand = new Uint8Array([0xF0, 0x00, 0x00])
