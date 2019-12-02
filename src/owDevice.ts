@@ -1,6 +1,7 @@
 import { Logger } from './logger'
 import crc81wire from 'crc/crc81wire'
 import { Mutex } from 'async-mutex'
+import { TimeoutStrategy, Policy, TaskCancelledError } from 'cockatiel'
 
 const BULK_SIZE = 64
 const SEARCH_INTERVAL = 500
@@ -14,6 +15,9 @@ const isValidKeyId = (keyId: Uint8Array) => {
 const timeoutPromise: () => Promise<void> = () => {
   return new Promise(r => setTimeout(() => { r() }, TIMEOUT_INTERVAL))
 }
+
+const timeoutPolicy = Policy.timeout(200, TimeoutStrategy.Cooperative)
+const retryPolicy = Policy.handleType(TaskCancelledError).retry().attempts(2)
 
 class StateRegister {
   detectKey: boolean
@@ -188,18 +192,22 @@ export class OWDevice {
   }
 
   private async deviceReset () {
-    await this.usbDevice.reset()
-    let res = await this.usbDevice.controlTransferOut({
-      requestType: 'vendor',
-      recipient: 'device',
-      request: 0x00,
-      value: 0x00,
-      index: 0x00
+    await retryPolicy.execute(async () => {
+      await this.usbDevice.reset()
+      let res = await timeoutPolicy.execute(async () => {
+        return this.usbDevice.controlTransferOut({
+          requestType: 'vendor',
+          recipient: 'device',
+          request: 0x00,
+          value: 0x00,
+          index: 0x00
+        })
+      })
+      if (res.status !== 'ok') {
+        throw new Error('1-Wire Device reset failed.')
+      }
+      await this.bufferClear()
     })
-    if (res.status !== 'ok') {
-      throw new Error('1-Wire Device reset failed.')
-    }
-    await this.bufferClear()
   }
 
   private async write (data: Uint8Array, clearWire: boolean = false) {
@@ -381,10 +389,8 @@ export class OWDevice {
     const offsetMSB = (offset & 0xFF)
     const offsetLSB = (offset & 0xFF00) >> 8
     const endingOffset = data.length - 1
-    console.log('Starting Write')
 
     const keyWriteToScratch = async (keyRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) => {
-      console.log(`Write: ${offset} - ${data.byteLength}`)
       const keyWriteData = async (data: Uint8Array, offset: number = 0) => {
         const size = Math.min(BULK_SIZE, data.length - offset)
         const sendData = new Uint8Array(size)
