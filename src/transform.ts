@@ -212,7 +212,9 @@ class ConvertedUSBDevice {
     return new Promise((resolve, reject) => {
       this.nodeUsbDevice.reset((error?: string) => {
         if (error) {
-          navigator.usb.dispatchEvent(new WebUSBConnectionEvent('disconnect', { device: this.asWebUSBDevice() }))
+          if (typeof navigator.usb !== 'undefined') {
+            navigator.usb.dispatchEvent(new WebUSBConnectionEvent('disconnect', { device: this.asWebUSBDevice() }))
+          }
           return reject(error)
         }
         resolve()
@@ -263,6 +265,9 @@ class ConvertedUSBDevice {
   }
 
   private endpointTypeTransform (endpointType: number) {
+    if (typeof window.node_usb === 'undefined') {
+      throw new Error('Node-USB not found')
+    }
     switch (endpointType) {
       case window.node_usb.LIBUSB_TRANSFER_TYPE_BULK:
         return 'bulk'
@@ -274,6 +279,9 @@ class ConvertedUSBDevice {
   }
 
   private requestTypeTransform (requestType: USBRequestType) {
+    if (typeof window.node_usb === 'undefined') {
+      throw new Error('Node-USB not found')
+    }
     switch (requestType) {
       case 'standard':
         return window.node_usb.LIBUSB_REQUEST_TYPE_STANDARD
