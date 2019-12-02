@@ -6,18 +6,15 @@ import { TimeoutStrategy, Policy, TaskCancelledError } from 'cockatiel'
 const BULK_SIZE = 64
 const SEARCH_INTERVAL = 500
 const TIMEOUT_INTERVAL = 200
+const RETRY_ATTEMPTS = 3
 const ALT_INTERFACE = 1
 
 const isValidKeyId = (keyId: Uint8Array) => {
   return keyId[0] === 0x0C && keyId[7] !== 0
 }
 
-const timeoutPromise: () => Promise<void> = () => {
-  return new Promise(r => setTimeout(() => { r() }, TIMEOUT_INTERVAL))
-}
-
-const timeoutPolicy = Policy.timeout(200, TimeoutStrategy.Cooperative)
-const retryPolicy = Policy.handleType(TaskCancelledError).retry().attempts(2)
+const timeoutPolicy = Policy.timeout(TIMEOUT_INTERVAL, TimeoutStrategy.Cooperative)
+const timeoutRetryPolicy = Policy.handleType(TaskCancelledError).retry().attempts(RETRY_ATTEMPTS)
 
 class StateRegister {
   detectKey: boolean
@@ -87,7 +84,7 @@ export class OWDevice {
   async startSearch () {
     if (!this.searching) {
       this.searching = true
-      this.awaitKey()
+      void this.awaitKey()
     }
   }
 
@@ -98,24 +95,26 @@ export class OWDevice {
       if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
         await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
       }
-    } catch (error) { console.log('Close: ' + error)/*Ignore error*/ }
+    } catch (error) {
+      console.warn(`Close Error: ${error}`)
+    }
     releaseMutex()
   }
 
-  private awaitKey () {
-    setTimeout(async () => {
-      if (this.searching) {
-        let releaseMutex = await this.mutex.acquire()
-        try {
-          await Promise.race([
-            this.keySearch(),
-            timeoutPromise()
-          ])
-        } catch (error) { console.log('Await: ' + error)/*Ignore error*/}
-        releaseMutex()
-        this.awaitKey()
-      }
-    }, SEARCH_INTERVAL)
+  private async awaitKey () {
+    if (!this.searching) {
+      return
+    }
+
+    let releaseMutex = await this.mutex.acquire()
+    try {
+      timeoutPolicy.execute(async () => this.keySearch())
+    } catch (error) {
+      console.warn(`Await Key Error: ${error}`)
+      await this.deviceReset()
+    }
+    releaseMutex()
+    setTimeout(async () => void this.awaitKey(), SEARCH_INTERVAL)
   }
 
   private async keySearch () {
@@ -192,7 +191,7 @@ export class OWDevice {
   }
 
   private async deviceReset () {
-    await retryPolicy.execute(async () => {
+    await timeoutRetryPolicy.execute(async () => {
       await this.usbDevice.reset()
       let res = await timeoutPolicy.execute(async () => {
         return this.usbDevice.controlTransferOut({
