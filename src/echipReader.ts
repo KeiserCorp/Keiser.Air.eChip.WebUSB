@@ -19,7 +19,7 @@ export class EChipReader {
     this.owDevice = new OWDevice(usbDevice, (e: Array<Uint8Array>) => this.echipsDetected(e))
     this.claimed = this.owDevice.claim().then(() => {
       Logger.info('EChip Reader connected.')
-      this.owDevice.startSearch()
+      void this.owDevice.startSearch()
       return true
     })
   }
@@ -58,7 +58,7 @@ export class EChipReader {
   protected disconnected (device: WebUSBDevice) {
     if (this.usbDevice === device) {
       this.onDisconnectEvent.emit(null)
-      this.dispose()
+      void this.dispose()
     }
   }
 

@@ -9,10 +9,10 @@ export class USBDevice {
     this.vendorId = vendorId
     this.productId = productId
 
-    navigator.usb.addEventListener('connect', event => { this.attached(event as USBConnectionEvent) })
-    navigator.usb.addEventListener('disconnect', event => { this.detached(event as USBConnectionEvent) })
+    navigator.usb.addEventListener('connect', event => { void this.attached(event as USBConnectionEvent) })
+    navigator.usb.addEventListener('disconnect', event => { void this.detached(event as USBConnectionEvent) })
 
-    this.checkDevices()
+    void this.checkDevices()
   }
 
   get isConnected () {
@@ -40,7 +40,7 @@ export class USBDevice {
       throw new Error('USB Device permission denied.')
     }
     if (device) {
-      this.connected(device)
+      await this.connected(device)
     }
   }
 
@@ -50,16 +50,14 @@ export class USBDevice {
     }
 
     let devices = await navigator.usb.getDevices()
-    devices.some(device => {
+    for (let device of devices) {
       if (this.matchesTarget(device)) {
-        this.connected(device)
-        return true
+        await this.connected(device)
       }
-      return
-    })
+    }
   }
 
-  private checkNodeDevices () {
+  private async checkNodeDevices () {
     if (typeof window.node_usb === 'undefined') {
       return false
     }
@@ -71,22 +69,22 @@ export class USBDevice {
 
     if (nodeUsbDevice) {
       const webUsbDevice = nodeToWeb(nodeUsbDevice)
-      this.connected(webUsbDevice)
+      await this.connected(webUsbDevice)
       return true
     }
 
     return false
   }
 
-  private attached (event: USBConnectionEvent) {
+  private async attached (event: USBConnectionEvent) {
     if (event.device && this.matchesTarget(event.device)) {
-      this.connected(event.device)
+      await this.connected(event.device)
     }
   }
 
-  private detached (event: USBConnectionEvent) {
+  private async detached (event: USBConnectionEvent) {
     if (event.device && this.matchesTarget(event.device) && this.isConnectedDevices(event.device)) {
-      this.disconnected(event.device)
+      await this.disconnected(event.device)
     }
   }
 

@@ -49,8 +49,8 @@ export class EChip extends EChipConnection {
     // await (this.data = this.loadData())
   }
 
-  protected async dispose () {
-    await super.dispose()
+  protected dispose () {
+    super.dispose()
     Logger.info('EChip disconnected: ' + this.id)
   }
 

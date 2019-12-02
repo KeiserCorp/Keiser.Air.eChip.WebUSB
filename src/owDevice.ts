@@ -68,7 +68,7 @@ export class OWDevice {
     const usbConfiguration = this.usbDevice.configurations[0]
     const usbInterface = usbConfiguration.interfaces[0]
     try {
-      if (this.usbDevice.configuration === null || typeof this.usbDevice.configuration === 'undefined' || this.usbDevice.configuration.configurationValue !== usbConfiguration.configurationValue) {
+      if (typeof this.usbDevice.configuration === 'undefined' || this.usbDevice.configuration.configurationValue !== usbConfiguration.configurationValue) {
         await this.usbDevice.selectConfiguration(usbConfiguration.configurationValue)
       }
       await this.usbDevice.claimInterface(usbInterface.interfaceNumber)
@@ -133,7 +133,7 @@ export class OWDevice {
         this.onDetectKeys(validIds)
       }
     } catch (error) {
-      this.deviceReset()
+      await this.deviceReset()
     }
   }
 
@@ -357,7 +357,7 @@ export class OWDevice {
       if (searchObject.romByteNumber < 8) {
         return this.romSubSearch(searchObject)
       } else {
-        if (searchObject.idBitNumber >= 65 && crc81wire(new Buffer(searchObject.romId)) === 0) {
+        if (searchObject.idBitNumber >= 65 && crc81wire(Buffer.from(searchObject.romId)) === 0) {
           searchObject.lastDiscrepancy = searchObject.lastZero
           if (searchObject.lastDiscrepancy === 0) {
             searchObject.lastDevice = true

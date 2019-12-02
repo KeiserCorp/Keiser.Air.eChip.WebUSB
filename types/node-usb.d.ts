@@ -713,6 +713,6 @@ declare class NodeUSB {
 
 declare global {
   interface Window {
-    readonly node_usb: NodeUSB
+    readonly node_usb?: NodeUSB
   }
 }
