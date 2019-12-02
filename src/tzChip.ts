@@ -7,14 +7,17 @@ import { Listener, Disposable } from './typedEvent'
 export default class TZChip extends EChipConnection {
   private echipId: Uint8Array
   private owDevice: OWDevice
-  private data: Promise<EChipObject>
+  private start: number
+  private data: Promise<EChipObject> | null
 
   constructor (echipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(onDisconnect)
     this.echipId = echipId
     this.owDevice = owDevice
-    this.data = this.loadData()
+    this.data = null
+    this.start = performance.now()
     Logger.info('(Timezone) Green Chip connected: ' + this.id)
+
   }
 
   get id () {
@@ -31,21 +34,30 @@ export default class TZChip extends EChipConnection {
 
   protected async dispose () {
     super.dispose()
-    Logger.info('EChip disconnected: ' + this.id)
+    Logger.info('(Timezone) Green Chip disconnected: ' + this.id)
   }
 
   async setTZOffset () {
     let tzString = getTzStr()
     let tzOffset = getTzOffset()
-    console.log(tzOffset)
-    await this.owDevice.writeTZOffset(this.echipId, tzString, 0x00, 0x00)
-    // await this.owDevice.writeTZOffset(this.echipId, tzOffset, 0x08, 0x00)
+
+    let resultTZString = false
+
+    while (!resultTZString) {
+      resultTZString = await this.owDevice.writeTZOffset(this.echipId, tzString, 0x00, 0x00)
+    }
+
+    let resultTZOffset = false
+    while (!resultTZOffset) {
+      resultTZOffset = await this.owDevice.writeTZOffset(this.echipId, tzOffset, 0x08, 0x00)
+    }
+    Logger.info('Finished Write (Timezone): ' + + Math.round(performance.now() - this.start) + 'ms')
+    this.data = this.loadData()
   }
 
   private async loadData () {
     let raw = await this.owDevice.keyReadAll(this.echipId, false)
     let echipData = EChipParser(raw)
-    console.log(raw)
 
     return echipData
   }

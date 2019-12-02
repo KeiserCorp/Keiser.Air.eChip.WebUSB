@@ -520,50 +520,55 @@ export default class OWDevice {
 
   async writeTZOffset (keyRom: Uint8Array, data: Uint8Array, offMSB: number, offLSB: number) {
 
-    await this.reset()
-    await this.romCommand(keyRom, false)
+    try {
 
-    await this.write(new Uint8Array([0x0F, offMSB, offLSB,...data]), true)
+      await this.reset()
+      await this.romCommand(keyRom, false)
 
-    await this.reset()
+      await this.write(new Uint8Array([0x0F, offMSB, offLSB,...data]), true)
 
-    await this.romCommand(keyRom, false)
-    await this.write(new Uint8Array([0xAA, offMSB, offLSB, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]), false)
+      await this.reset()
 
-    await this.read(1)
+      await this.romCommand(keyRom, false)
+      await this.write(new Uint8Array([0xAA, offMSB, offLSB, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]), false)
 
-    let result = []
-    do {
-      result.push((await this.read(1))[0])
-    } while (result.length < 3)
+      await this.read(1)
 
-    console.log(result)
+      let result = []
+      do {
+        result.push((await this.read(1))[0])
+      } while (result.length < 3)
 
-    let result2 = []
-    do {
-      result2.push((await this.read(1))[0])
-    } while (result2.length < 8)
+      let result2 = []
+      do {
+        result2.push((await this.read(1))[0])
+      } while (result2.length < 8)
 
-    if (result[2] !== 0x07) {
-      return false
+      if (result[2] !== 0x07) {
+        return false
+      }
+
+      await this.reset()
+
+      await this.romCommand(keyRom, false)
+      await this.write(new Uint8Array([0x55,...result]), true)
+    } catch (error) {
+      await this.writeTZOffset(keyRom, data, offMSB, offLSB)
     }
-
-    console.log(result2)
-
-    await this.reset()
-
-    await this.romCommand(keyRom, false)
-    await this.write(new Uint8Array([0x55,...result]), true)
 
     return true
   }
 
   async writeRTC (keyRom: Uint8Array, data: Uint8Array) {
-    await this.reset()
-    await this.romCommand(keyRom, false)
-    const writeCommand = new Uint8Array([0x99])
-    await this.write(writeCommand, true)
-    await this.write(data, false)
-    await this.reset()
+    try {
+      await this.reset()
+      await this.romCommand(keyRom, false)
+      const writeCommand = new Uint8Array([0x99])
+      await this.write(writeCommand, true)
+      await this.write(data, false)
+      await this.reset()
+    } catch (error) {
+      await this.writeRTC(keyRom, data)
+    }
   }
 }

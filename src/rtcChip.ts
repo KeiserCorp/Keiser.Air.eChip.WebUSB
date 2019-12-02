@@ -7,21 +7,16 @@ import { Listener, Disposable } from './typedEvent'
 export default class RTCChip extends EChipConnection {
   private echipId: Uint8Array
   private owDevice: OWDevice
-  private data: Promise<EChipObject>
+  private start: number
+  private data: Promise<EChipObject> | null
 
   constructor (echipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(onDisconnect)
     this.echipId = echipId
     this.owDevice = owDevice
-    this.data = this.loadData()
+    this.data = null
+    this.start = performance.now()
     Logger.info('(RTC) Blue Chip connected: ' + this.id)
-
-    try {
-      this.setRTC()
-    } catch (error) {
-      Logger.info(error)
-    }
-
   }
 
   get id () {
@@ -37,13 +32,17 @@ export default class RTCChip extends EChipConnection {
   }
 
   protected async dispose () {
-    await super.dispose()
-    Logger.info('EChip disconnected: ' + this.id)
+    super.dispose()
+    Logger.info('RTC Chip disconnected: ' + this.id)
   }
 
   async setRTC () {
     let newTime = currentTime()
     await this.owDevice.writeRTC(this.echipId, newTime)
+
+    this.data = this.loadData()
+
+    Logger.info('Finished Write (Time & Date): ' + + Math.round(performance.now() - this.start) + 'ms')
   }
 
   private async loadData () {

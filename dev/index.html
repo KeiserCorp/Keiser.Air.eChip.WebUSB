@@ -13,8 +13,9 @@
       <button v-on:click="set" :disabled="!echipData">Set</button>
       <button v-on:click="clear" :disabled="!echipData">Clear</button>
       <button v-on:click="disconnect" :disabled="!echipReader ">Disconnect</button>
-      <button v-on:click="setTZ">setTZ</button>
       <div class="loader" v-if="echip && !echipData"></div>
+      <div class="loader" v-if="rtcChip && !echipData"></div>
+      <div class="loader" v-if="tzChip && !echipData"></div>
       <div class="key-id" v-if="echip">{{ echip.id }}</div>
     </div>
     <pre v-html="echipDataHtml"></pre>
