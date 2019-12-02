@@ -9,8 +9,14 @@ export class USBDevice {
     this.vendorId = vendorId
     this.productId = productId
 
-    navigator.usb.addEventListener('connect', event => { void this.attached(event as USBConnectionEvent) })
-    navigator.usb.addEventListener('disconnect', event => { void this.detached(event as USBConnectionEvent) })
+    if (typeof navigator.usb === 'undefined') {
+      if (typeof window.node_usb === 'undefined') {
+        throw new Error('Web-USB not supported in this browser')
+      }
+    } else {
+      navigator.usb.addEventListener('connect', event => { void this.attached(event as USBConnectionEvent) })
+      navigator.usb.addEventListener('disconnect', event => { void this.detached(event as USBConnectionEvent) })
+    }
 
     void this.checkDevices()
   }
@@ -26,6 +32,10 @@ export class USBDevice {
   private async requestPermission () {
     if (this.checkNodeDevices()) {
       return
+    }
+
+    if (typeof navigator.usb === 'undefined') {
+      throw new Error('Web-USB not supported in this browser')
     }
 
     let device
@@ -47,6 +57,10 @@ export class USBDevice {
   private async checkDevices () {
     if (this.checkNodeDevices()) {
       return
+    }
+
+    if (typeof navigator.usb === 'undefined') {
+      throw new Error('Web-USB not supported in this browser')
     }
 
     let devices = await navigator.usb.getDevices()
