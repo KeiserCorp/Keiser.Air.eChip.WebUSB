@@ -4,6 +4,8 @@ import { EChipConnection } from './echipConnection'
 import { EChipBuilder, EChipParser, EChipObject, MachineObject } from './echipLib'
 import { Listener, Disposable } from './typedEvent'
 
+const invalidResultGenerator = (): Promise<EChipObject> => new Promise(r => r({ machineData: {}, rawData: [], validStructure: false } as EChipObject))
+
 export class EChip extends EChipConnection {
   private echipId: Uint8Array
   private owDevice: OWDevice
@@ -35,18 +37,27 @@ export class EChip extends EChipConnection {
       let oldData = (await this.data).rawData
       await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
     } catch (error) {
-      await this.owDevice.keyWriteAll(this.echipId, newData, false)
+      console.log('Diff write failed. Retrying using full write.')
+      try {
+        await this.owDevice.keyWriteAll(this.echipId, newData, false)
+      } catch (error) {
+        this.data = invalidResultGenerator()
+        throw error
+      }
+      this.data = new Promise(r => r(EChipParser(newData)))
     }
-    this.data = new Promise(r => r(EChipParser(newData)))
-    // await (this.data = this.loadData())
   }
 
-  async setData (machines: {[index: string]: MachineObject}) {
+  async setData (machines: { [index: string]: MachineObject }) {
     let newData = EChipBuilder(machines)
     let oldData = (await this.data).rawData
-    await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
+    try {
+      await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
+    } catch (error) {
+      this.data = invalidResultGenerator()
+      throw error
+    }
     this.data = new Promise(r => r(EChipParser(newData)))
-    // await (this.data = this.loadData())
   }
 
   protected dispose () {
