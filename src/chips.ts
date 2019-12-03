@@ -1,7 +1,7 @@
-import { EChip } from './echip'
+import { DataChip } from './dataChip'
 import { RTCChip } from './rtcChip'
 import { TZChip } from './tzChip'
 import { BaseChip } from './baseChip'
 
-export type Chip = EChip | RTCChip | TZChip | BaseChip
-export { EChip, RTCChip, TZChip, BaseChip }
+export type Chip = DataChip | RTCChip | TZChip | BaseChip
+export { DataChip, RTCChip, TZChip, BaseChip }

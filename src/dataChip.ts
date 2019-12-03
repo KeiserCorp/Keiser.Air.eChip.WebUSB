@@ -1,7 +1,7 @@
 
 import { BaseChip } from './baseChip'
 import { OWDevice } from './owDevice'
-import { EChipBuilder, EChipParser, EChipObject, MachineObject } from './chipLib'
+import { DataChipBuilder, DataChipParser, DataChipObject, MachineObject } from './chipLib'
 import { Listener, Disposable } from './typedEvent'
 import { TimeoutStrategy, Policy } from 'cockatiel'
 
@@ -11,13 +11,13 @@ const RETRY_ATTEMPTS = 2
 const timeoutPolicy = Policy.timeout(TIMEOUT_INTERVAL, TimeoutStrategy.Cooperative)
 const retryPolicy = Policy.handleAll().retry().attempts(RETRY_ATTEMPTS)
 
-const invalidResultGenerator = () => Promise.resolve({ machineData: {}, rawData: [], validStructure: false } as EChipObject)
+const invalidResultGenerator = () => Promise.resolve({ machineData: {}, rawData: [], validStructure: false } as DataChipObject)
 const compareResults = (srcData: Array<Uint8Array>, resData: Array<Uint8Array>) => {
   return srcData.every((page, pageIndex) => page.every((byte, index) => byte === resData[pageIndex][index]))
 }
 
-export class EChip extends BaseChip {
-  private data: Promise<EChipObject>
+export class DataChip extends BaseChip {
+  private data: Promise<DataChipObject>
 
   constructor (chipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(chipId, owDevice, onDisconnect)
@@ -29,7 +29,7 @@ export class EChip extends BaseChip {
   }
 
   async clearData () {
-    let newData = EChipBuilder({})
+    let newData = DataChipBuilder({})
     await retryPolicy.execute(async () => {
       await timeoutPolicy.execute(async () => this.performClearData(newData))
     })
@@ -55,7 +55,7 @@ export class EChip extends BaseChip {
   }
 
   async setData (machines: { [index: string]: MachineObject }) {
-    let newData = EChipBuilder(machines)
+    let newData = DataChipBuilder(machines)
     await retryPolicy.execute(async () => {
       await timeoutPolicy.execute(async () => this.performSetData(newData))
     })
@@ -80,7 +80,7 @@ export class EChip extends BaseChip {
     return retryPolicy.execute(async () => {
       return timeoutPolicy.execute(async () => {
         let raw = await this.owDevice.keyReadAll(this.chipId, false)
-        let echipData = EChipParser(raw)
+        let echipData = DataChipParser(raw)
         if (!echipData.validStructure) {
           throw new Error('Invalid data structure.')
         }

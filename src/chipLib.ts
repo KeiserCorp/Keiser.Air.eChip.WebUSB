@@ -1,4 +1,4 @@
-export interface EChipObject {
+export interface DataChipObject {
   machineData: {[index: string]: MachineObject}
   rawData: Uint8Array[]
   validStructure: boolean
@@ -66,14 +66,14 @@ export enum TestType {
 }
 
 export enum ChipType {
-  eChip = 12,
+  dataChip = 12,
   rtcChip = 36,
   tzChip = 45,
   unknown = 0
 }
 
-export function EChipParser (data: Uint8Array[] = []) {
-  let echipObject: EChipObject = {
+export function DataChipParser (data: Uint8Array[] = []) {
+  let echipObject: DataChipObject = {
     machineData: {},
     rawData: data,
     validStructure: false
@@ -204,8 +204,8 @@ const parseMachineSet = (data: Uint8Array[], machineObject: MachineObject, page:
   }
 }
 
-export function EChipBuilder (machines: {[index: string ]: MachineObject}) {
-  let data = generateEmptyEChip()
+export function DataChipBuilder (machines: {[index: string ]: MachineObject}) {
+  let data = generateEmptyDataChip()
   const maxDirectories = 24
   const maxRecords = 242
   let directoryIndex = 0
@@ -456,7 +456,7 @@ const serialStringToChannelByte = (serial: string, version: string, precision: P
   return channel
 }
 
-const generateEmptyEChip = (): Uint8Array[] => {
+const generateEmptyDataChip = (): Uint8Array[] => {
   let data = new Array(256)
   for (let y = 0; y < data.length; y++) {
     data[y] = new Uint8Array(32)
@@ -506,7 +506,7 @@ const buildMachineTestData = (test: MachineTest, page: Uint8Array) => {
 
 export function getChipType (value: number) {
   switch (value) {
-    case 12: return ChipType.eChip
+    case 12: return ChipType.dataChip
     case 36: return ChipType.rtcChip
     case 45: return ChipType.tzChip
     default: return ChipType.unknown
@@ -515,7 +515,7 @@ export function getChipType (value: number) {
 
 export function getChipLabel (type: ChipType) {
   switch (type) {
-    case ChipType.eChip: return 'EChip'
+    case ChipType.dataChip: return 'Data Chip'
     case ChipType.rtcChip: return 'RTC Chip'
     case ChipType.tzChip: return 'TZ Chip'
     default: return 'Unknown Chip'

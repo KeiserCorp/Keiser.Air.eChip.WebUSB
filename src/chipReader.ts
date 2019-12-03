@@ -1,5 +1,5 @@
 import { Logger } from './logger'
-import { Chip, EChip, RTCChip, TZChip, BaseChip } from './chips'
+import { Chip, DataChip, RTCChip, TZChip, BaseChip } from './chips'
 import { OWDevice } from './owDevice'
 import { getChipType, ChipType } from './chipLib'
 import { TypedEvent, Listener, Disposable } from './typedEvent'
@@ -49,8 +49,8 @@ export class ChipReader {
         let chip: Chip
         const onDisconnectCallback = (l: Listener<null>) => this.onDisconnect(l)
         switch (chipType) {
-          case ChipType.eChip:
-            chip = new EChip(chipId, this.owDevice, onDisconnectCallback)
+          case ChipType.dataChip:
+            chip = new DataChip(chipId, this.owDevice, onDisconnectCallback)
             break
           case ChipType.rtcChip:
             chip = new RTCChip(chipId, this.owDevice, onDisconnectCallback)
