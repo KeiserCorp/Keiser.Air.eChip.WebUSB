@@ -1,8 +1,7 @@
 import Vue from 'vue'
 import ChipReaderWatcher from '../src/chipReaderWatcher'
 import { ChipReader } from '../src/chipReader'
-// import { EChip } from '../src/echip'
-import { BaseChip } from '../src/baseChip'
+import { Chip, EChip, RTCChip, TZChip } from '../src/chips'
 import { EChipObject } from '../src/chipLib'
 import SyntaxHighlight from './syntax'
 import { SET_2 } from './test'
@@ -16,8 +15,8 @@ new Vue({
   data: {
     chipReaderWatcher: ChipReaderWatcher,
     chipReader: null as ChipReader | null,
-    chip: null as BaseChip | null,
-    chipData: null as EChipObject | null
+    chip: null as Chip | null,
+    chipData: null as EChipObject | boolean | null
   },
   methods: {
     async connect () {
@@ -37,22 +36,26 @@ new Vue({
     chipReaderConnected (chipReader: ChipReader) {
       this.chipReader = chipReader
       this.chipReader.onDisconnect(this.chipReaderDisconnected)
-      this.chipReader.onEChipDetect(this.chipDetected)
+      this.chipReader.onChipDetect(this.chipDetected)
     },
     chipReaderDisconnected () {
       this.chipReader = null
     },
-    async chipDetected (chip: BaseChip) {
+    async chipDetected (chip: Chip) {
       this.chip = chip
       this.chip.onDisconnect(this.chipDisconnected)
-      // this.chipData = await this.chip.getData()
+      if (this.chip instanceof EChip) {
+        this.chipData = await this.chip.getData()
+      } else if (this.chip instanceof RTCChip || this.chip instanceof TZChip) {
+        this.chipData = await this.chip.isSet()
+      }
     },
     chipDisconnected () {
       this.chip = null
       this.chipData = null
     },
     async set () {
-      if (this.chip) {
+      if (this.chip instanceof EChip) {
         this.chipData = null
         try {
           await this.chip.setData(SET_2)
@@ -63,7 +66,7 @@ new Vue({
       }
     },
     async clear () {
-      if (this.chip) {
+      if (this.chip instanceof EChip) {
         this.chipData = null
         try {
           await this.chip.clearData()
@@ -76,7 +79,7 @@ new Vue({
   },
   computed: {
     chipDataHtml: function (): string {
-      if (!this.chipData || !this.chipData.validStructure) {
+      if (!this.chipData || typeof this.chipData === 'boolean' || !this.chipData.validStructure) {
         return ''
       }
       return SyntaxHighlight(this.chipData.machineData)

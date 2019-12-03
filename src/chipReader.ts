@@ -1,8 +1,5 @@
 import { Logger } from './logger'
-import { RTCChip } from './rtcChip'
-import { TZChip } from './tzChip'
-import { EChip } from './echip'
-import { BaseChip } from './baseChip'
+import { Chip, EChip, RTCChip, TZChip, BaseChip } from './chips'
 import { OWDevice } from './owDevice'
 import { getChipType, ChipType } from './chipLib'
 import { TypedEvent, Listener, Disposable } from './typedEvent'
@@ -13,9 +10,9 @@ export class ChipReader {
   private onDisconnectListener: Disposable | null = null
   private usbDevice: WebUSBDevice
   private owDevice: OWDevice
-  private onChipDetectEvent = new TypedEvent<BaseChip>()
+  private onChipDetectEvent = new TypedEvent<Chip>()
   private onDisconnectEvent = new TypedEvent<null>()
-  private activeKeys: Map<string,BaseChip> = new Map()
+  private activeKeys: Map<string,Chip> = new Map()
 
   constructor (usbDevice: WebUSBDevice, onDisconnect: (listener: Listener<WebUSBDevice>) => Disposable) {
     this.onDisconnectListener = onDisconnect((device: WebUSBDevice) => this.disconnected(device))
@@ -35,7 +32,7 @@ export class ChipReader {
     return this.onDisconnectEvent.on(listener)
   }
 
-  onChipDetect (listener: Listener<BaseChip>) {
+  onChipDetect (listener: Listener<Chip>) {
     return this.onChipDetectEvent.on(listener)
   }
 
@@ -49,22 +46,23 @@ export class ChipReader {
 
       if (!this.activeKeys.has(chipIdString)) {
 
-        let chip: BaseChip | null = null
+        let chip: Chip
+        const onDisconnectCallback = (l: Listener<null>) => this.onDisconnect(l)
         switch (chipType) {
           case ChipType.eChip:
-            chip = new EChip(chipId, this.owDevice, (l: Listener<null>) => this.onDisconnect(l))
+            chip = new EChip(chipId, this.owDevice, onDisconnectCallback)
             break
-          case 36:
-            chip = new RTCChip(chipId, this.owDevice, (l: Listener<null>) => this.onDisconnect(l))
+          case ChipType.rtcChip:
+            chip = new RTCChip(chipId, this.owDevice, onDisconnectCallback)
             break
-          case 45:
-            chip = new TZChip(chipId, this.owDevice, (l: Listener<null>) => this.onDisconnect(l))
+          case ChipType.tzChip:
+            chip = new TZChip(chipId, this.owDevice, onDisconnectCallback)
             break
+          default:
+            chip = new BaseChip(chipId, this.owDevice, onDisconnectCallback)
         }
-        if (chip instanceof BaseChip) {
-          this.activeKeys.set(chipIdString, chip)
-          this.onChipDetectEvent.emit(chip)
-        }
+        this.activeKeys.set(chipIdString, chip)
+        this.onChipDetectEvent.emit(chip)
       }
     })
 
