@@ -1,7 +1,40 @@
-export interface EChipObject {
-  machineData: {[index: string]: MachineObject}
-  rawData: Uint8Array[]
-  validStructure: boolean
+export class ChipObject {
+  protected chipType: ChipType
+
+  constructor (chipType: ChipType) {
+    this.chipType = chipType
+  }
+
+  get type () {
+    return this.chipType
+  }
+}
+
+export class DataChipObject extends ChipObject {
+  private chipMachineData: {[index: string]: MachineObject}
+  private chipRawData: Uint8Array[]
+  private chipValidStructure: boolean
+
+  constructor (data: Uint8Array[] = []) {
+    super(ChipType.dataChip)
+
+    const res = DataChipParser(data)
+    this.chipMachineData = res.machineData
+    this.chipValidStructure = res.validStructure
+    this.chipRawData = data
+  }
+
+  get machineData () {
+    return this.chipMachineData
+  }
+
+  get rawData () {
+    return this.chipRawData
+  }
+
+  get validStructure () {
+    return this.chipValidStructure
+  }
 }
 
 export interface MachineObject {
@@ -65,15 +98,21 @@ export enum TestType {
   a42010r = 'a42010r'
 }
 
-export function EChipParser (data: Uint8Array[] = []) {
-  let echipObject: EChipObject = {
-    machineData: {},
-    rawData: data,
+export enum ChipType {
+  dataChip = 12,
+  rtcChip = 36,
+  tzChip = 45,
+  unknown = 0
+}
+
+export function DataChipParser (data: Uint8Array[] = []) {
+  let res = {
+    machineData: {} as {[index: string]: MachineObject},
     validStructure: false
   }
 
   if (data.length === 0 || !isValidData(data)) {
-    return echipObject
+    return res
   }
 
   for (let y = 1; y <= 8; y++) {
@@ -82,7 +121,7 @@ export function EChipParser (data: Uint8Array[] = []) {
       let bufferOffset = x * 10
       if (data[pageOffset][bufferOffset] === 1) {
         let model = byteToString(data[pageOffset][bufferOffset + 1], data[pageOffset][bufferOffset + 2])
-        echipObject.machineData[model] = {
+        res.machineData[model] = {
           position: {
             chest: toValue(data[pageOffset][bufferOffset + 3]),
             rom2: toValue(data[pageOffset][bufferOffset + 4]),
@@ -92,12 +131,12 @@ export function EChipParser (data: Uint8Array[] = []) {
           sets: []
         }
         let firstPage = data[pageOffset][bufferOffset + 7]
-        parseMachineSet(data, echipObject.machineData[model], firstPage)
+        parseMachineSet(data, res.machineData[model], firstPage)
       }
     }
   }
-  echipObject.validStructure = true
-  return echipObject
+  res.validStructure = true
+  return res
 }
 
 const parseMachineSet = (data: Uint8Array[], machineObject: MachineObject, page: number) => {
@@ -197,8 +236,8 @@ const parseMachineSet = (data: Uint8Array[], machineObject: MachineObject, page:
   }
 }
 
-export function EChipBuilder (machines: {[index: string ]: MachineObject}) {
-  let data = generateEmptyEChip()
+export function DataChipBuilder (machines: {[index: string ]: MachineObject}) {
+  let data = generateEmptyDataChip()
   const maxDirectories = 24
   const maxRecords = 242
   let directoryIndex = 0
@@ -449,7 +488,7 @@ const serialStringToChannelByte = (serial: string, version: string, precision: P
   return channel
 }
 
-const generateEmptyEChip = (): Uint8Array[] => {
+const generateEmptyDataChip = (): Uint8Array[] => {
   let data = new Array(256)
   for (let y = 0; y < data.length; y++) {
     data[y] = new Uint8Array(32)
@@ -495,6 +534,36 @@ const buildMachineTestData = (test: MachineTest, page: Uint8Array) => {
   if (test.high) {
     packData(test.high, 24, page)
   }
+}
+
+export function getChipType (value: number) {
+  switch (value) {
+    case 12: return ChipType.dataChip
+    case 36: return ChipType.rtcChip
+    case 45: return ChipType.tzChip
+    default: return ChipType.unknown
+  }
+}
+
+export function getChipLabel (type: ChipType) {
+  switch (type) {
+    case ChipType.dataChip: return 'Data Chip'
+    case ChipType.rtcChip: return 'RTC Chip'
+    case ChipType.tzChip: return 'TZ Chip'
+    default: return 'Unknown Chip'
+  }
+}
+
+export function getTzOffset () {
+  const currentTZ = ((new Date()).getTimezoneOffset()) * 60
+  const tzData = intToByte(currentTZ)
+  return new Uint8Array([...tzData, 0xFF, 0xFF, 0xFF, 0xFF])
+}
+
+export function getCurrentTimeArray () {
+  let data = dateToByte(new Date())
+  data.unshift(0x0C) // Append Device Control Byte (12)
+  return new Uint8Array(data)
 }
 
 const unpackData = (page: Uint8Array, offset: number) => {

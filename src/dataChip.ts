@@ -1,7 +1,7 @@
-import { Logger } from './logger'
+
+import { BaseChip } from './baseChip'
 import { OWDevice } from './owDevice'
-import { EChipConnection } from './echipConnection'
-import { EChipBuilder, EChipParser, EChipObject, MachineObject } from './echipLib'
+import { DataChipObject, DataChipBuilder, MachineObject } from './chipLib'
 import { Listener, Disposable } from './typedEvent'
 import { TimeoutStrategy, Policy } from 'cockatiel'
 
@@ -11,30 +11,17 @@ const RETRY_ATTEMPTS = 2
 const timeoutPolicy = Policy.timeout(TIMEOUT_INTERVAL, TimeoutStrategy.Cooperative)
 const retryPolicy = Policy.handleAll().retry().attempts(RETRY_ATTEMPTS)
 
-const invalidResultGenerator = () => Promise.resolve({ machineData: {}, rawData: [], validStructure: false } as EChipObject)
+const invalidResultGenerator = () => Promise.resolve(new DataChipObject())
 const compareResults = (srcData: Array<Uint8Array>, resData: Array<Uint8Array>) => {
   return srcData.every((page, pageIndex) => page.every((byte, index) => byte === resData[pageIndex][index]))
 }
 
-export class EChip extends EChipConnection {
-  private echipId: Uint8Array
-  private owDevice: OWDevice
-  private data: Promise<EChipObject>
+export class DataChip extends BaseChip {
+  protected data: Promise<DataChipObject>
 
-  constructor (echipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
-    super(onDisconnect)
-    this.echipId = echipId
-    this.owDevice = owDevice
+  constructor (chipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
+    super(chipId, owDevice, onDisconnect)
     this.data = this.loadData()
-    Logger.info('EChip connected: ' + this.id)
-  }
-
-  get id () {
-    return this.echipId.reduce((s,d) => s += (d & 0x0F).toString(16) + ((d >> 4) & 0x0F).toString(16), '').split('').reverse().join('')
-  }
-
-  destroy () {
-    this.disconnected()
   }
 
   async getData () {
@@ -42,7 +29,7 @@ export class EChip extends EChipConnection {
   }
 
   async clearData () {
-    let newData = EChipBuilder({})
+    let newData = DataChipBuilder({})
     await retryPolicy.execute(async () => {
       await timeoutPolicy.execute(async () => this.performClearData(newData))
     })
@@ -51,10 +38,10 @@ export class EChip extends EChipConnection {
   private async performClearData (newData: Uint8Array[]) {
     try {
       let oldData = (await this.data).rawData
-      await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
+      await this.owDevice.dataChipWriteDiff(this.chipId, newData, oldData, false)
     } catch (error) {
       try {
-        await this.owDevice.keyWriteAll(this.echipId, newData, false)
+        await this.owDevice.dataChipWriteAll(this.chipId, newData, false)
       } catch (error) {
         this.data = invalidResultGenerator()
         throw error
@@ -68,7 +55,7 @@ export class EChip extends EChipConnection {
   }
 
   async setData (machines: { [index: string]: MachineObject }) {
-    let newData = EChipBuilder(machines)
+    let newData = DataChipBuilder(machines)
     await retryPolicy.execute(async () => {
       await timeoutPolicy.execute(async () => this.performSetData(newData))
     })
@@ -77,7 +64,7 @@ export class EChip extends EChipConnection {
   async performSetData (newData: Uint8Array[]) {
     let oldData = (await this.data).rawData
     try {
-      await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
+      await this.owDevice.dataChipWriteDiff(this.chipId, newData, oldData, false)
     } catch (error) {
       this.data = invalidResultGenerator()
       throw error
@@ -89,20 +76,15 @@ export class EChip extends EChipConnection {
     }
   }
 
-  protected dispose () {
-    super.dispose()
-    Logger.info('EChip disconnected: ' + this.id)
-  }
-
   private async loadData () {
     return retryPolicy.execute(async () => {
       return timeoutPolicy.execute(async () => {
-        let raw = await this.owDevice.keyReadAll(this.echipId, false)
-        let echipData = EChipParser(raw)
-        if (!echipData.validStructure) {
+        const raw = await this.owDevice.dataChipReadAll(this.chipId, false)
+        const chipData = new DataChipObject(raw)
+        if (!chipData.validStructure) {
           throw new Error('Invalid data structure.')
         }
-        return echipData
+        return chipData
       })
     })
   }

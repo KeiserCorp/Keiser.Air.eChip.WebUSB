@@ -21,7 +21,7 @@ DtsBundlePlugin.prototype.apply = function (compiler) {
 
 module.exports = {
   mode: 'production',
-  entry: './src/echipReaderWatcher.ts',
+  entry: './src/chipReaderWatcher.ts',
   module: {
     rules: [
       {
@@ -53,8 +53,8 @@ module.exports = {
       pretty: true
     }),
     new DtsBundlePlugin({
-      name: 'EChipReaderWatcher',
-      main: path.join(DIST, 'types/echipReaderWatcher.d.ts'),
+      name: 'ChipReaderWatcher',
+      main: path.join(DIST, 'types/chipReaderWatcher.d.ts'),
       out: path.join(DIST, 'index.d.ts'),
       removeSource: true,
       newLine: 'lf',
