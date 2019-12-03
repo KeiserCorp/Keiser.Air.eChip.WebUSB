@@ -38,10 +38,10 @@ export class DataChip extends BaseChip {
   private async performClearData (newData: Uint8Array[]) {
     try {
       let oldData = (await this.data).rawData
-      await this.owDevice.keyWriteDiff(this.chipId, newData, oldData, false)
+      await this.owDevice.dataChipWriteDiff(this.chipId, newData, oldData, false)
     } catch (error) {
       try {
-        await this.owDevice.keyWriteAll(this.chipId, newData, false)
+        await this.owDevice.dataChipWriteAll(this.chipId, newData, false)
       } catch (error) {
         this.data = invalidResultGenerator()
         throw error
@@ -64,7 +64,7 @@ export class DataChip extends BaseChip {
   async performSetData (newData: Uint8Array[]) {
     let oldData = (await this.data).rawData
     try {
-      await this.owDevice.keyWriteDiff(this.chipId, newData, oldData, false)
+      await this.owDevice.dataChipWriteDiff(this.chipId, newData, oldData, false)
     } catch (error) {
       this.data = invalidResultGenerator()
       throw error
@@ -79,7 +79,7 @@ export class DataChip extends BaseChip {
   private async loadData () {
     return retryPolicy.execute(async () => {
       return timeoutPolicy.execute(async () => {
-        const raw = await this.owDevice.keyReadAll(this.chipId, false)
+        const raw = await this.owDevice.dataChipReadAll(this.chipId, false)
         const chipData = new DataChipObject(raw)
         if (!chipData.validStructure) {
           throw new Error('Invalid data structure.')

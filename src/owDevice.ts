@@ -9,15 +9,15 @@ const TIMEOUT_INTERVAL = 200
 const RETRY_ATTEMPTS = 3
 const ALT_INTERFACE = 1
 
-const isValidKeyId = (keyId: Uint8Array) => {
-  return (keyId[0] === 0x0C && keyId[7] !== 0) || (keyId[0] === 0x24 && keyId[7] !== 0) || (keyId[0] === 0x2D && keyId[7] !== 0)
+const isValidChipId = (chipId: Uint8Array) => {
+  return (chipId[0] === 0x0C && chipId[7] !== 0) || (chipId[0] === 0x24 && chipId[7] !== 0) || (chipId[0] === 0x2D && chipId[7] !== 0)
 }
 
 const timeoutPolicy = Policy.timeout(TIMEOUT_INTERVAL, TimeoutStrategy.Cooperative)
 const timeoutRetryPolicy = Policy.handleType(TaskCancelledError).retry().attempts(RETRY_ATTEMPTS)
 
 class StateRegister {
-  detectKey: boolean
+  detectChip: boolean
   data: Uint8Array
   dataOutBufferStatus: number
   dataInBufferStatus: number
@@ -28,7 +28,7 @@ class StateRegister {
     this.commCommandBufferStatus = dataArray[11]
     this.dataOutBufferStatus = dataArray[12]
     this.dataInBufferStatus = dataArray[13]
-    this.detectKey = dataArray[16] === 165
+    this.detectChip = dataArray[16] === 165
     this.data = dataArray.slice(16, dataArray.length)
   }
 }
@@ -54,11 +54,11 @@ export class OWDevice {
   private interrupt: USBEndpoint
   private bulkIn: USBEndpoint
   private bulkOut: USBEndpoint
-  private onDetectKeys: (keyRom: Array<Uint8Array>) => void
+  private onDetectChips: (chipRom: Array<Uint8Array>) => void
 
-  constructor (usbDevice: WebUSBDevice, onDetectKeys: (keyId: Array<Uint8Array>) => void = (k: Array<Uint8Array>) => { return }) {
+  constructor (usbDevice: WebUSBDevice, onDetectChips: (chipId: Array<Uint8Array>) => void = (k: Array<Uint8Array>) => { return }) {
     this.usbDevice = usbDevice
-    this.onDetectKeys = onDetectKeys
+    this.onDetectChips = onDetectChips
     const altInterface = this.usbDevice.configurations[0].interfaces[0].alternates[ALT_INTERFACE]
     this.interrupt = altInterface.endpoints[0]
     this.bulkIn = altInterface.endpoints[1]
@@ -84,7 +84,7 @@ export class OWDevice {
   async startSearch () {
     if (!this.searching) {
       this.searching = true
-      void this.awaitKey()
+      void this.awaitChip()
     }
   }
 
@@ -101,39 +101,39 @@ export class OWDevice {
     releaseMutex()
   }
 
-  private async awaitKey () {
+  private async awaitChip () {
     if (!this.searching) {
       return
     }
 
     let releaseMutex = await this.mutex.acquire()
     try {
-      await timeoutPolicy.execute(async () => this.keySearch())
+      await timeoutPolicy.execute(async () => this.chipSearch())
     } catch (error) {
-      Logger.warn(`Await Key Error: ${error}`)
+      Logger.warn(`Await Chip Error: ${error}`)
       await this.deviceReset()
     }
     releaseMutex()
-    setTimeout(async () => void this.awaitKey(), SEARCH_INTERVAL)
+    setTimeout(async () => void this.awaitChip(), SEARCH_INTERVAL)
   }
 
-  private async keySearch () {
+  private async chipSearch () {
     let validIds = []
     try {
       let result = await this.romSearch()
 
       if (result.result) {
-        if (isValidKeyId(result.key)) {
-          validIds.push(result.key)
+        if (isValidChipId(result.chipId)) {
+          validIds.push(result.chipId)
         }
 
         while (result.result && !result.lastDevice) {
           result = await result.next()
-          if (result.result && isValidKeyId(result.key)) {
-            validIds.push(result.key)
+          if (result.result && isValidChipId(result.chipId)) {
+            validIds.push(result.chipId)
           }
         }
-        this.onDetectKeys(validIds)
+        this.onDetectChips(validIds)
       }
     } catch (error) {
       await this.deviceReset()
@@ -154,13 +154,6 @@ export class OWDevice {
       await this.bufferClear()
     }
   }
-
-  // private async detectShort () {
-  //   let deviceStatus = await this.deviceStatus()
-  //   if (deviceStatus.commCommandBufferStatus !== 0 || (deviceStatus.detectKey && deviceStatus.data[0])) {
-  //     throw new Error('1-Wire Device short detected.')
-  //   }
-  // }
 
   private async setSpeed (overdrive: boolean) {
     const index = overdrive ? 0x0002 : 0x0001
@@ -282,10 +275,10 @@ export class OWDevice {
     await this.read(1)
   }
 
-  private async romCommand (keyRom: Uint8Array | null = null, overdrive: boolean = false) {
+  private async romCommand (chipRom: Uint8Array | null = null, overdrive: boolean = false) {
     // Index Value Ref: http://owfs.sourceforge.net/commands.html
-    let index = keyRom ? (overdrive ? 0x0069 : 0x0055) : (overdrive ? 0x003C : 0x00CC)
-    let transferDataBuffer = keyRom ? keyRom.buffer : new Uint8Array(8).buffer
+    let index = chipRom ? (overdrive ? 0x0069 : 0x0055) : (overdrive ? 0x003C : 0x00CC)
+    let transferDataBuffer = chipRom ? chipRom.buffer : new Uint8Array(8).buffer
 
     let res = await this.usbDevice.controlTransferOut({
       requestType: 'vendor',
@@ -301,8 +294,8 @@ export class OWDevice {
     res = await this.usbDevice.transferOut(this.bulkIn.endpointNumber, transferDataBuffer)
   }
 
-  private async romMatch (keyRom: Uint8Array, overdrive: boolean = false) {
-    return this.romCommand(keyRom, overdrive)
+  private async romMatch (chipRom: Uint8Array, overdrive: boolean = false) {
+    return this.romCommand(chipRom, overdrive)
   }
 
   private async romSearch (lastDiscrepancy: number = 0) {
@@ -325,7 +318,7 @@ export class OWDevice {
 
     return {
       result: searchResult.searchResult,
-      key: searchResult.romId,
+      chipId: searchResult.romId,
       lastDevice: searchResult.lastDevice,
       next: async () => this.romSearch(searchResult.lastDiscrepancy)
     }
@@ -384,13 +377,13 @@ export class OWDevice {
     }
   }
 
-  private async keyWrite (keyRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) {
+  private async dataChipWrite (chipRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) {
     const offsetMSB = (offset & 0xFF)
     const offsetLSB = (offset & 0xFF00) >> 8
     const endingOffset = data.length - 1
 
-    const keyWriteToScratch = async (keyRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) => {
-      const keyWriteData = async (data: Uint8Array, offset: number = 0) => {
+    const dataChipWriteToScratch = async (chipRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) => {
+      const dataChipWriteData = async (data: Uint8Array, offset: number = 0) => {
         const size = Math.min(BULK_SIZE, data.length - offset)
         const sendData = new Uint8Array(size)
         for (let x = 0; x < size; x++) {
@@ -398,40 +391,40 @@ export class OWDevice {
         }
         await this.write(sendData)
         if ((data.length - (offset + size)) > 0) {
-          await keyWriteData(data, offset + size)
+          await dataChipWriteData(data, offset + size)
         }
       }
 
       await this.reset()
-      await this.romMatch(keyRom, overdrive)
+      await this.romMatch(chipRom, overdrive)
       const writeCommand = new Uint8Array([0x0F, offsetMSB, offsetLSB])
       await this.write(writeCommand, true)
-      await keyWriteData(data)
+      await dataChipWriteData(data)
       await this.reset()
-      await this.romMatch(keyRom, overdrive)
+      await this.romMatch(chipRom, overdrive)
       const readCommand = new Uint8Array([0xAA])
       await this.write(readCommand)
       const result = await this.read(data.length)
       await this.clearByte()
       if (result.length !== data.length || !result.every((e, i) => e === data[i])) {
-        await keyWriteToScratch(keyRom, offset, data, overdrive)
+        await dataChipWriteToScratch(chipRom, offset, data, overdrive)
       }
     }
 
     await this.setSpeed(overdrive)
-    await keyWriteToScratch(keyRom, offset, data, overdrive)
+    await dataChipWriteToScratch(chipRom, offset, data, overdrive)
     await this.reset()
-    await this.romMatch(keyRom, overdrive)
+    await this.romMatch(chipRom, overdrive)
     const writeCommand = new Uint8Array([0x55, offsetMSB, offsetLSB, endingOffset])
     await this.write(writeCommand, true)
   }
 
-  async keyWriteAll (keyRom: Uint8Array, data: Array<Uint8Array> = [], overdrive: boolean = false) {
-    const keyWriteAllOffset = async (keyRom: Uint8Array, page: number = 0, data: Array<Uint8Array> = [], overdrive: boolean = false) => {
+  async dataChipWriteAll (chipRom: Uint8Array, data: Array<Uint8Array> = [], overdrive: boolean = false) {
+    const dataChipWriteAllOffset = async (chipRom: Uint8Array, page: number = 0, data: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
-      await this.keyWrite(keyRom, offset, data[page], overdrive)
+      await this.dataChipWrite(chipRom, offset, data[page], overdrive)
       if (data.length > page + 1) {
-        await keyWriteAllOffset(keyRom, page + 1, data, overdrive)
+        await dataChipWriteAllOffset(chipRom, page + 1, data, overdrive)
       }
     }
 
@@ -439,21 +432,21 @@ export class OWDevice {
     const start = performance.now()
     try {
       await this.deviceReset()
-      await keyWriteAllOffset(keyRom, 0, data, overdrive)
+      await dataChipWriteAllOffset(chipRom, 0, data, overdrive)
       Logger.info('Write All Completed: ' + Math.round(performance.now() - start) + 'ms')
     } finally {
       releaseMutex()
     }
   }
 
-  async keyWriteDiff (keyRom: Uint8Array, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) {
-    const keyWriteDiffOffset = async (keyRom: Uint8Array, page: number = 0, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) => {
+  async dataChipWriteDiff (chipRom: Uint8Array, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) {
+    const dataChipWriteDiffOffset = async (chipRom: Uint8Array, page: number = 0, newData: Array<Uint8Array> = [], oldData: Array<Uint8Array> = [], overdrive: boolean = false) => {
       const offset = page * 32
       if (newData[page].length !== oldData[page].length || !newData[page].every((e,i) => e === oldData[page][i])) {
-        await this.keyWrite(keyRom, offset, newData[page], overdrive)
+        await this.dataChipWrite(chipRom, offset, newData[page], overdrive)
       }
       if (newData.length > (page + 1)) {
-        await keyWriteDiffOffset(keyRom, page + 1, newData, oldData, overdrive)
+        await dataChipWriteDiffOffset(chipRom, page + 1, newData, oldData, overdrive)
       }
     }
 
@@ -465,7 +458,7 @@ export class OWDevice {
     const start = performance.now()
     try {
       await this.deviceReset()
-      await keyWriteDiffOffset(keyRom, 0, newData, oldData, overdrive)
+      await dataChipWriteDiffOffset(chipRom, 0, newData, oldData, overdrive)
       Logger.info('Write Diff Completed: ' + Math.round(performance.now() - start) + 'ms')
     } finally {
       releaseMutex()
@@ -473,34 +466,34 @@ export class OWDevice {
 
   }
 
-  async keyReadAll (keyRom: Uint8Array, overdrive: boolean = false) {
-    const keyReadPage = async (page: Uint8Array, index: number = 0) => {
+  async dataChipReadAll (chipRom: Uint8Array, overdrive: boolean = false) {
+    const dataChipReadPage = async (page: Uint8Array, index: number = 0) => {
       const size = Math.min(BULK_SIZE, page.length - index)
       const result = await this.read(size)
       result.forEach(e => page[index++] = e)
       if (index < page.length) {
-        await keyReadPage(page, index)
+        await dataChipReadPage(page, index)
       }
     }
 
-    const keyReadMemory = async (memory: Array<Uint8Array> = new Array(256), pageIndex: number = 0) => {
+    const dataChipReadMemory = async (memory: Array<Uint8Array> = new Array(256), pageIndex: number = 0) => {
       memory[pageIndex] = new Uint8Array(32)
       let buffer = (new Uint8Array(32)).fill(0xFF)
       await this.write(buffer)
-      await keyReadPage(memory[pageIndex++])
+      await dataChipReadPage(memory[pageIndex++])
       if (pageIndex < memory.length) {
-        await keyReadMemory(memory, pageIndex)
+        await dataChipReadMemory(memory, pageIndex)
       }
       return memory
     }
 
-    const keyReadAllSteps = async (overdrive: boolean) => {
+    const dataChipReadAllSteps = async (overdrive: boolean) => {
       await this.setSpeed(overdrive)
       await this.reset()
-      await this.romMatch(keyRom, overdrive)
+      await this.romMatch(chipRom, overdrive)
       const writeCommand = new Uint8Array([0xF0, 0x00, 0x00])
       await this.write(writeCommand, true)
-      return keyReadMemory()
+      return dataChipReadMemory()
     }
 
     const releaseMutex = await this.mutex.acquire()
@@ -508,11 +501,11 @@ export class OWDevice {
     try {
       try {
         await this.deviceReset()
-        return await keyReadAllSteps(overdrive)
+        return await dataChipReadAllSteps(overdrive)
       } catch (error) {
         Logger.warn('Read All ' + (overdrive ? 'Overdrive ' : '') + 'Failed: ' + error.message)
         await this.deviceReset()
-        return await keyReadAllSteps(false)
+        return await dataChipReadAllSteps(false)
       }
     } catch (error) {
       Logger.error('Read All Failed: ' + error.message)
@@ -523,16 +516,16 @@ export class OWDevice {
     }
   }
 
-  async writeTZOffset (keyRom: Uint8Array, data: Uint8Array, offMSB: number, offLSB: number) {
+  async writeTZOffset (chipRom: Uint8Array, data: Uint8Array, offMSB: number, offLSB: number) {
     try {
       await this.reset()
-      await this.romCommand(keyRom, false)
+      await this.romCommand(chipRom, false)
 
       await this.write(new Uint8Array([0x0F, offMSB, offLSB, ...data]), true)
 
       await this.reset()
 
-      await this.romCommand(keyRom, false)
+      await this.romCommand(chipRom, false)
       await this.write(new Uint8Array([0xAA, offMSB, offLSB, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]), false)
 
       await this.read(1)
@@ -553,25 +546,25 @@ export class OWDevice {
 
       await this.reset()
 
-      await this.romCommand(keyRom, false)
+      await this.romCommand(chipRom, false)
       await this.write(new Uint8Array([0x55,...result]), true)
     } catch (error) {
-      await this.writeTZOffset(keyRom, data, offMSB, offLSB)
+      await this.writeTZOffset(chipRom, data, offMSB, offLSB)
     }
     await this.deviceReset()
     return true
   }
 
-  async writeRTC (keyRom: Uint8Array, data: Uint8Array) {
+  async writeRTC (chipRom: Uint8Array, data: Uint8Array) {
     try {
       await this.reset()
-      await this.romCommand(keyRom, false)
+      await this.romCommand(chipRom, false)
       const writeCommand = new Uint8Array([0x99])
       await this.write(writeCommand, true)
       await this.write(data, false)
       await this.reset()
     } catch (error) {
-      await this.writeRTC(keyRom, data)
+      await this.writeRTC(chipRom, data)
     }
   }
 }
