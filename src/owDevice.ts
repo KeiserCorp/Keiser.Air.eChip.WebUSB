@@ -528,7 +528,7 @@ export class OWDevice {
       await this.reset()
       await this.romCommand(keyRom, false)
 
-      await this.write(new Uint8Array([0x0F, offMSB, offLSB,...data]), true)
+      await this.write(new Uint8Array([0x0F, offMSB, offLSB, ...data]), true)
 
       await this.reset()
 

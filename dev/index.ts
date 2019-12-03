@@ -1,8 +1,9 @@
 import Vue from 'vue'
-import EChipReaderWatcher from '../src/echipReaderWatcher'
-import { EChipReader } from '../src/echipReader'
-import { EChip } from '../src/echip'
-import { EChipObject } from '../src/echipLib'
+import ChipReaderWatcher from '../src/chipReaderWatcher'
+import { ChipReader } from '../src/chipReader'
+// import { EChip } from '../src/echip'
+import { BaseChip } from '../src/baseChip'
+import { EChipObject } from '../src/chipLib'
 import SyntaxHighlight from './syntax'
 import { SET_2 } from './test'
 
@@ -10,63 +11,63 @@ import { SET_2 } from './test'
 new Vue({
   el: '#app',
   created () {
-    this.echipReaderWatcher.onConnect(this.echipReaderConnected)
+    this.chipReaderWatcher.onConnect(this.chipReaderConnected)
   },
   data: {
-    echipReaderWatcher: EChipReaderWatcher,
-    echipReader: null as EChipReader | null,
-    echip: null as EChip | null,
-    echipData: null as EChipObject | null
+    chipReaderWatcher: ChipReaderWatcher,
+    chipReader: null as ChipReader | null,
+    chip: null as BaseChip | null,
+    chipData: null as EChipObject | null
   },
   methods: {
     async connect () {
       try {
-        await this.echipReaderWatcher.start()
+        await this.chipReaderWatcher.start()
       } catch (error) {
         console.error(error.message)
       }
     },
     async disconnect () {
       try {
-        await this.echipReaderWatcher.stop()
+        await this.chipReaderWatcher.stop()
       } catch (error) {
         console.error(error.message)
       }
     },
-    echipReaderConnected (echipReader: EChipReader) {
-      this.echipReader = echipReader
-      this.echipReader.onDisconnect(this.echipReaderDisconnected)
-      this.echipReader.onEChipDetect(this.echipDetected)
+    chipReaderConnected (chipReader: ChipReader) {
+      this.chipReader = chipReader
+      this.chipReader.onDisconnect(this.chipReaderDisconnected)
+      this.chipReader.onEChipDetect(this.chipDetected)
     },
-    echipReaderDisconnected () {
-      this.echipReader = null
+    chipReaderDisconnected () {
+      this.chipReader = null
     },
-    async echipDetected (echip: EChip) {
-      this.echip = echip
-      this.echip.onDisconnect(this.echipDisconnected)
-      this.echipData = await this.echip.getData()
+    async chipDetected (chip: BaseChip) {
+      this.chip = chip
+      this.chip.onDisconnect(this.chipDisconnected)
+      // this.chipData = await this.chip.getData()
     },
-    echipDisconnected () {
-      this.echip = null
-      this.echipData = null
+    chipDisconnected () {
+      this.chip = null
+      this.chipData = null
     },
     async set () {
-      if (this.echip) {
-        this.echipData = null
+      if (this.chip) {
+        this.chipData = null
         try {
-          await this.echip.setData(SET_2)
-          this.echipData = await this.echip.getData()
+          await this.chip.setData(SET_2)
+          this.chipData = await this.chip.getData()
         } catch (error) {
           console.error(error.message)
         }
       }
     },
     async clear () {
-      if (this.echip) {
-        this.echipData = null
+      if (this.chip) {
+        this.chipData = null
         try {
-          await this.echip.clearData()
-          this.echipData = await this.echip.getData()
+          await this.chip.clearData()
+          this.chipData = await this.chip.getData()
         } catch (error) {
           console.error(error.message)
         }
@@ -74,11 +75,11 @@ new Vue({
     }
   },
   computed: {
-    echipDataHtml: function (): string {
-      if (!this.echipData || !this.echipData.validStructure) {
+    chipDataHtml: function (): string {
+      if (!this.chipData || !this.chipData.validStructure) {
         return ''
       }
-      return SyntaxHighlight(this.echipData.machineData)
+      return SyntaxHighlight(this.chipData.machineData)
     }
   }
 })

@@ -1,4 +1,4 @@
-import { MachineObject } from '../src/echipLib'
+import { MachineObject } from '../src/chipLib'
 
 export const SET_1 = {
   '2035': {

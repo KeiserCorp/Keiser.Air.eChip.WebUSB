@@ -1,6 +1,6 @@
 import { TypedEvent, Listener, Disposable } from './typedEvent'
 
-export class EChipConnection {
+export class ChipConnection {
   protected disposed: boolean = false
   private onDisconnectListener: Disposable | null = null
   private onDisconnectEvent = new TypedEvent<null>()

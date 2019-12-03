@@ -9,14 +9,14 @@
 <body>
   <div id="app">
     <div class="panel">
-      <button v-on:click="connect" :disabled="echipReader">Connect</button>
-      <button v-on:click="set" :disabled="!echipData">Set</button>
-      <button v-on:click="clear" :disabled="!echipData">Clear</button>
-      <button v-on:click="disconnect" :disabled="!echipReader ">Disconnect</button>
-      <div class="loader" v-if="echip && !echipData"></div>
-      <div class="key-id" v-if="echip">{{ echip.id }}</div>
+      <button v-on:click="connect" :disabled="chipReader">Connect</button>
+      <button v-on:click="set" :disabled="!chipData">Set</button>
+      <button v-on:click="clear" :disabled="!chipData">Clear</button>
+      <button v-on:click="disconnect" :disabled="!chipReader ">Disconnect</button>
+      <div class="loader" v-if="chip && !chipData"></div>
+      <div class="key-id" v-if="chip">{{ chip.id }}</div>
     </div>
-    <pre v-html="echipDataHtml"></pre>
+    <pre v-html="chipDataHtml"></pre>
   </div>
 </body>
 

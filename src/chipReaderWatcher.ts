@@ -1,23 +1,23 @@
 import { USBDevice } from './usbDevice'
-import { EChipReader } from './echipReader'
+import { ChipReader } from './chipReader'
 import { TypedEvent, Listener, Disposable } from './typedEvent'
 
-const ECHIP_READER_VENDOR_ID = 0x04FA
-const ECHIP_READER_PRODUCT_ID = 0x2490
+const CHIP_READER_VENDOR_ID = 0x04FA
+const CHIP_READER_PRODUCT_ID = 0x2490
 
-export class EChipReaderWatcher extends USBDevice {
-  private onConnectEvent = new TypedEvent<EChipReader>()
+export class ChipReaderWatcher extends USBDevice {
+  private onConnectEvent = new TypedEvent<ChipReader>()
   private onDisconnectEvent = new TypedEvent<WebUSBDevice>()
 
   constructor () {
-    super(ECHIP_READER_VENDOR_ID, ECHIP_READER_PRODUCT_ID)
+    super(CHIP_READER_VENDOR_ID, CHIP_READER_PRODUCT_ID)
   }
 
   async stop () {
     await Promise.all(this.connectedDevices.map(d => this.disconnected(d)))
   }
 
-  onConnect (listener: Listener<EChipReader>): Disposable {
+  onConnect (listener: Listener<ChipReader>): Disposable {
     return this.onConnectEvent.on(listener)
   }
 
@@ -27,9 +27,9 @@ export class EChipReaderWatcher extends USBDevice {
 
   protected async connected (device: WebUSBDevice) {
     await super.connected(device)
-    const echipReader = new EChipReader(device, (l: Listener<WebUSBDevice>) => this.onDisconnect(l))
-    await echipReader.claimed
-    this.onConnectEvent.emit(echipReader)
+    const chipReader = new ChipReader(device, (l: Listener<WebUSBDevice>) => this.onDisconnect(l))
+    await chipReader.claimed
+    this.onConnectEvent.emit(chipReader)
   }
 
   protected async disconnected (device: WebUSBDevice) {
@@ -38,4 +38,4 @@ export class EChipReaderWatcher extends USBDevice {
   }
 }
 
-export default new EChipReaderWatcher()
+export default new ChipReaderWatcher()

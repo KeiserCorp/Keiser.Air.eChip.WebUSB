@@ -65,6 +65,13 @@ export enum TestType {
   a42010r = 'a42010r'
 }
 
+export enum ChipType {
+  eChip = 12,
+  rtcChip = 36,
+  tzChip = 45,
+  unknown = 0
+}
+
 export function EChipParser (data: Uint8Array[] = []) {
   let echipObject: EChipObject = {
     machineData: {},
@@ -497,39 +504,34 @@ const buildMachineTestData = (test: MachineTest, page: Uint8Array) => {
   }
 }
 
-export function getTzStr () {
-
-  const tzstr = 'timezone'
-  let data = []
-  // Pushes timezone string in ascii to first (8 bytes)
-  for (let i = 0; i < tzstr.length; i++) {
-    const tzi = (tzstr.charAt(i).charCodeAt(0))
-    data.push(tzi)
+export function getChipType (value: number) {
+  switch (value) {
+    case 12: return ChipType.eChip
+    case 36: return ChipType.rtcChip
+    case 45: return ChipType.tzChip
+    default: return ChipType.unknown
   }
+}
 
-  let bitArray = new Uint8Array(data)
-  return bitArray
+export function getChipLabel (type: ChipType) {
+  switch (type) {
+    case ChipType.eChip: return 'EChip'
+    case ChipType.rtcChip: return 'RTC Chip'
+    case ChipType.tzChip: return 'TZ Chip'
+    default: return 'Unknown Chip'
+  }
 }
 
 export function getTzOffset () {
-  let setTZ = new Date()
-  let currentTZ = (setTZ.getTimezoneOffset()) * 60
-  let data = intToByte(currentTZ)
-
-  for (let i = 0; i < 4; i++) {
-    data.push(0xFF)
-  }
-
-  let bitArray = new Uint8Array(data)
-
-  return bitArray
+  const currentTZ = ((new Date()).getTimezoneOffset()) * 60
+  const tzData = intToByte(currentTZ)
+  return new Uint8Array([...tzData, 0xFF, 0xFF, 0xFF, 0xFF])
 }
 
-export function currentTime () {
+export function getCurrentTimeArray () {
   let data = dateToByte(new Date())
   data.unshift(0x0C) // Append Device Control Byte (12)
-  let bitArray = new Uint8Array(data)
-  return bitArray
+  return new Uint8Array(data)
 }
 
 const unpackData = (page: Uint8Array, offset: number) => {

@@ -1,8 +1,7 @@
 
-import Chip from './chip'
-import { Logger } from './logger'
+import { BaseChip } from './baseChip'
 import { OWDevice } from './owDevice'
-import { EChipBuilder, EChipParser, EChipObject, MachineObject } from './echipLib'
+import { EChipBuilder, EChipParser, EChipObject, MachineObject } from './chipLib'
 import { Listener, Disposable } from './typedEvent'
 import { TimeoutStrategy, Policy } from 'cockatiel'
 
@@ -17,14 +16,11 @@ const compareResults = (srcData: Array<Uint8Array>, resData: Array<Uint8Array>) 
   return srcData.every((page, pageIndex) => page.every((byte, index) => byte === resData[pageIndex][index]))
 }
 
-export class EChip extends Chip {
-  private owDevice: OWDevice
+export class EChip extends BaseChip {
   private data: Promise<EChipObject>
 
-  constructor (echipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
-    super(echipId, owDevice, onDisconnect)
-    this.echipId = echipId
-    this.owDevice = owDevice
+  constructor (chipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
+    super(chipId, owDevice, onDisconnect)
     this.data = this.loadData()
   }
 
@@ -42,10 +38,10 @@ export class EChip extends Chip {
   private async performClearData (newData: Uint8Array[]) {
     try {
       let oldData = (await this.data).rawData
-      await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
+      await this.owDevice.keyWriteDiff(this.chipId, newData, oldData, false)
     } catch (error) {
       try {
-        await this.owDevice.keyWriteAll(this.echipId, newData, false)
+        await this.owDevice.keyWriteAll(this.chipId, newData, false)
       } catch (error) {
         this.data = invalidResultGenerator()
         throw error
@@ -68,7 +64,7 @@ export class EChip extends Chip {
   async performSetData (newData: Uint8Array[]) {
     let oldData = (await this.data).rawData
     try {
-      await this.owDevice.keyWriteDiff(this.echipId, newData, oldData, false)
+      await this.owDevice.keyWriteDiff(this.chipId, newData, oldData, false)
     } catch (error) {
       this.data = invalidResultGenerator()
       throw error
@@ -83,7 +79,7 @@ export class EChip extends Chip {
   private async loadData () {
     return retryPolicy.execute(async () => {
       return timeoutPolicy.execute(async () => {
-        let raw = await this.owDevice.keyReadAll(this.echipId, false)
+        let raw = await this.owDevice.keyReadAll(this.chipId, false)
         let echipData = EChipParser(raw)
         if (!echipData.validStructure) {
           throw new Error('Invalid data structure.')

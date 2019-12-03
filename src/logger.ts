@@ -18,6 +18,6 @@ export class Logger {
   }
 
   private static enabled () {
-    return !(process.env.NODE_ENV === 'production') || ((window as any)['DEBUG_ECHIP'] === true)
+    return !(process.env.NODE_ENV === 'production') || ((window as any)['DEBUG_CHIP'] === true)
   }
 }
