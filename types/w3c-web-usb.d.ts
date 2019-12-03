@@ -150,5 +150,5 @@ declare class WebUSBDevice {
 }
 
 interface Navigator {
-    readonly usb: WebUSB
+    readonly usb?: WebUSB
 }

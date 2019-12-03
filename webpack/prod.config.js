@@ -6,10 +6,18 @@ const CreateFileWebpack = require('create-file-webpack')
 const DIST = path.resolve(__dirname, '../dist')
 const package = Object.assign(require('../package.json'), {
   main: 'index.js',
+  types: 'index.d.ts',
   private: false,
   devDependencies: {},
   scripts: {}
 })
+
+function DtsBundlePlugin(options) { this.options = options }
+DtsBundlePlugin.prototype.apply = function (compiler) {
+  compiler.hooks.afterEmit.tap('DtsBundlePlugin', () => {
+    require('dts-bundle').bundle(this.options)
+  })
+}
 
 module.exports = {
   mode: 'production',
@@ -27,7 +35,10 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.js']
   },
   plugins: [
-    new CleanWebpackPlugin({ cleanOnceBeforeBuildPatterns: [DIST] }),
+    new CleanWebpackPlugin({
+      cleanOnceBeforeBuildPatterns: [DIST],
+      cleanAfterEveryBuildPatterns: [path.join(DIST, 'types')]
+    }),
     new CopyWebpackPlugin([{ from: 'types', to: 'types' }]),
     new CopyWebpackPlugin([{ from: 'README.md', to: 'README.md' }]),
     new CopyWebpackPlugin([{ from: 'LICENSE.md', to: 'LICENSE.md' }]),
@@ -40,6 +51,15 @@ module.exports = {
       object: package,
       filename: 'package.json',
       pretty: true
+    }),
+    new DtsBundlePlugin({
+      name: 'EChipReaderWatcher',
+      main: path.join(DIST, 'types/echipReaderWatcher.d.ts'),
+      out: path.join(DIST, 'index.d.ts'),
+      removeSource: true,
+      newLine: 'lf',
+      indent: '  ',
+      outputAsModuleFolder: true
     })
   ],
   output: {

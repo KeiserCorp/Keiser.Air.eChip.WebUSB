@@ -1,11 +1,11 @@
-import Logger from './logger'
-import EChip from './echip'
 import RTCChip from './rtcChip'
 import TZChip from './tzChip'
-import OWDevice from './owDevice'
+import { Logger } from './logger'
+import { EChip } from './echip'
+import { OWDevice } from './owDevice'
 import { TypedEvent, Listener, Disposable } from './typedEvent'
 
-export default class EChipReader {
+export class EChipReader {
   readonly claimed: Promise<boolean>
   private disposed: boolean = false
   private onDisconnectListener: Disposable | null = null
@@ -21,7 +21,7 @@ export default class EChipReader {
     this.owDevice = new OWDevice(usbDevice, (e: Array<Uint8Array>) => this.echipsDetected(e))
     this.claimed = this.owDevice.claim().then(() => {
       Logger.info('EChip Reader connected.')
-      this.owDevice.startSearch()
+      void this.owDevice.startSearch()
       return true
     })
   }
@@ -34,7 +34,7 @@ export default class EChipReader {
   }
 
   onEChipDetect (listener: Listener<EChip>) {
-    this.onEChipDetectEvent.on(listener)
+    return this.onEChipDetectEvent.on(listener)
   }
 
   private echipsDetected (echipIds: Array<Uint8Array>) {
@@ -83,7 +83,7 @@ export default class EChipReader {
   protected disconnected (device: WebUSBDevice) {
     if (this.usbDevice === device) {
       this.onDisconnectEvent.emit(null)
-      this.dispose()
+      void this.dispose()
     }
   }
 

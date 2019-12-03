@@ -1,11 +1,11 @@
-import USBDevice from './usbDevice'
-import EChipReader from './echipReader'
-import { TypedEvent, Listener } from './typedEvent'
+import { USBDevice } from './usbDevice'
+import { EChipReader } from './echipReader'
+import { TypedEvent, Listener, Disposable } from './typedEvent'
 
 const ECHIP_READER_VENDOR_ID = 0x04FA
 const ECHIP_READER_PRODUCT_ID = 0x2490
 
-export default class EChipReaderWatcher extends USBDevice {
+export class EChipReaderWatcher extends USBDevice {
   private onConnectEvent = new TypedEvent<EChipReader>()
   private onDisconnectEvent = new TypedEvent<WebUSBDevice>()
 
@@ -13,11 +13,11 @@ export default class EChipReaderWatcher extends USBDevice {
     super(ECHIP_READER_VENDOR_ID, ECHIP_READER_PRODUCT_ID)
   }
 
-  stop () {
-    this.connectedDevices.forEach(d => this.disconnected(d))
+  async stop () {
+    await Promise.all(this.connectedDevices.map(d => this.disconnected(d)))
   }
 
-  onConnect (listener: Listener<EChipReader>) {
+  onConnect (listener: Listener<EChipReader>): Disposable {
     return this.onConnectEvent.on(listener)
   }
 
@@ -37,3 +37,5 @@ export default class EChipReaderWatcher extends USBDevice {
     this.onDisconnectEvent.emit(device)
   }
 }
+
+export default new EChipReaderWatcher()

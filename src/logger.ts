@@ -1,4 +1,4 @@
-export default class Logger {
+export class Logger {
   static info (message?: any) {
     if (this.enabled()) {
       console.info(message)
