@@ -10,8 +10,8 @@
   <div id="app">
     <div class="panel">
       <button v-on:click="connect" :disabled="chipReader">Connect</button>
-      <button v-on:click="set" :disabled="!chipData || chipData === true">Set</button>
-      <button v-on:click="clear" :disabled="!chipData || chipData === true">Clear</button>
+      <button v-on:click="set" :disabled="!chipData || chipData.type !== 12">Set</button>
+      <button v-on:click="clear" :disabled="!chipData || chipData.type !== 12">Clear</button>
       <button v-on:click="disconnect" :disabled="!chipReader ">Disconnect</button>
       <div class="loader" v-if="chip && !chipData"></div>
       <div class="key-id" v-if="chip">{{ chip.id }}</div>

@@ -1,7 +1,7 @@
 
 import { BaseChip } from './baseChip'
 import { OWDevice } from './owDevice'
-import { DataChipBuilder, DataChipParser, DataChipObject, MachineObject } from './chipLib'
+import { DataChipObject, DataChipBuilder, MachineObject } from './chipLib'
 import { Listener, Disposable } from './typedEvent'
 import { TimeoutStrategy, Policy } from 'cockatiel'
 
@@ -11,13 +11,13 @@ const RETRY_ATTEMPTS = 2
 const timeoutPolicy = Policy.timeout(TIMEOUT_INTERVAL, TimeoutStrategy.Cooperative)
 const retryPolicy = Policy.handleAll().retry().attempts(RETRY_ATTEMPTS)
 
-const invalidResultGenerator = () => Promise.resolve({ machineData: {}, rawData: [], validStructure: false } as DataChipObject)
+const invalidResultGenerator = () => Promise.resolve(new DataChipObject())
 const compareResults = (srcData: Array<Uint8Array>, resData: Array<Uint8Array>) => {
   return srcData.every((page, pageIndex) => page.every((byte, index) => byte === resData[pageIndex][index]))
 }
 
 export class DataChip extends BaseChip {
-  private data: Promise<DataChipObject>
+  protected data: Promise<DataChipObject>
 
   constructor (chipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(chipId, owDevice, onDisconnect)
@@ -79,12 +79,12 @@ export class DataChip extends BaseChip {
   private async loadData () {
     return retryPolicy.execute(async () => {
       return timeoutPolicy.execute(async () => {
-        let raw = await this.owDevice.keyReadAll(this.chipId, false)
-        let echipData = DataChipParser(raw)
-        if (!echipData.validStructure) {
+        const raw = await this.owDevice.keyReadAll(this.chipId, false)
+        const chipData = new DataChipObject(raw)
+        if (!chipData.validStructure) {
           throw new Error('Invalid data structure.')
         }
-        return echipData
+        return chipData
       })
     })
   }

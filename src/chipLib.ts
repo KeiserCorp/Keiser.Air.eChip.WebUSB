@@ -1,7 +1,40 @@
-export interface DataChipObject {
-  machineData: {[index: string]: MachineObject}
-  rawData: Uint8Array[]
-  validStructure: boolean
+export class ChipObject {
+  protected chipType: ChipType
+
+  constructor (chipType: ChipType) {
+    this.chipType = chipType
+  }
+
+  get type () {
+    return this.chipType
+  }
+}
+
+export class DataChipObject extends ChipObject {
+  private chipMachineData: {[index: string]: MachineObject}
+  private chipRawData: Uint8Array[]
+  private chipValidStructure: boolean
+
+  constructor (data: Uint8Array[] = []) {
+    super(ChipType.dataChip)
+
+    const res = DataChipParser(data)
+    this.chipMachineData = res.machineData
+    this.chipValidStructure = res.validStructure
+    this.chipRawData = data
+  }
+
+  get machineData () {
+    return this.chipMachineData
+  }
+
+  get rawData () {
+    return this.chipRawData
+  }
+
+  get validStructure () {
+    return this.chipValidStructure
+  }
 }
 
 export interface MachineObject {
@@ -73,14 +106,13 @@ export enum ChipType {
 }
 
 export function DataChipParser (data: Uint8Array[] = []) {
-  let echipObject: DataChipObject = {
-    machineData: {},
-    rawData: data,
+  let res = {
+    machineData: {} as {[index: string]: MachineObject},
     validStructure: false
   }
 
   if (data.length === 0 || !isValidData(data)) {
-    return echipObject
+    return res
   }
 
   for (let y = 1; y <= 8; y++) {
@@ -89,7 +121,7 @@ export function DataChipParser (data: Uint8Array[] = []) {
       let bufferOffset = x * 10
       if (data[pageOffset][bufferOffset] === 1) {
         let model = byteToString(data[pageOffset][bufferOffset + 1], data[pageOffset][bufferOffset + 2])
-        echipObject.machineData[model] = {
+        res.machineData[model] = {
           position: {
             chest: toValue(data[pageOffset][bufferOffset + 3]),
             rom2: toValue(data[pageOffset][bufferOffset + 4]),
@@ -99,12 +131,12 @@ export function DataChipParser (data: Uint8Array[] = []) {
           sets: []
         }
         let firstPage = data[pageOffset][bufferOffset + 7]
-        parseMachineSet(data, echipObject.machineData[model], firstPage)
+        parseMachineSet(data, res.machineData[model], firstPage)
       }
     }
   }
-  echipObject.validStructure = true
-  return echipObject
+  res.validStructure = true
+  return res
 }
 
 const parseMachineSet = (data: Uint8Array[], machineObject: MachineObject, page: number) => {

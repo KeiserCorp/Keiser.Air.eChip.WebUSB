@@ -96,7 +96,7 @@ export class OWDevice {
         await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
       }
     } catch (error) {
-      console.warn(`Close Error: ${error}`)
+      Logger.warn(`Close Error: ${error}`)
     }
     releaseMutex()
   }
@@ -110,7 +110,7 @@ export class OWDevice {
     try {
       await timeoutPolicy.execute(async () => this.keySearch())
     } catch (error) {
-      console.warn(`Await Key Error: ${error}`)
+      Logger.warn(`Await Key Error: ${error}`)
       await this.deviceReset()
     }
     releaseMutex()

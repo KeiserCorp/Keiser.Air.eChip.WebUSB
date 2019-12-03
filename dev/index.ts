@@ -2,7 +2,7 @@ import Vue from 'vue'
 import ChipReaderWatcher from '../src/chipReaderWatcher'
 import { ChipReader } from '../src/chipReader'
 import { Chip, DataChip, RTCChip, TZChip } from '../src/chips'
-import { DataChipObject } from '../src/chipLib'
+import { ChipObject, DataChipObject } from '../src/chipLib'
 import SyntaxHighlight from './syntax'
 import { SET_2 } from './test'
 
@@ -16,7 +16,7 @@ new Vue({
     chipReaderWatcher: ChipReaderWatcher,
     chipReader: null as ChipReader | null,
     chip: null as Chip | null,
-    chipData: null as DataChipObject | boolean | null
+    chipData: null as ChipObject | null
   },
   methods: {
     async connect () {
@@ -44,10 +44,8 @@ new Vue({
     async chipDetected (chip: Chip) {
       this.chip = chip
       this.chip.onDisconnect(this.chipDisconnected)
-      if (this.chip instanceof DataChip) {
+      if (this.chip instanceof DataChip || this.chip instanceof RTCChip || this.chip instanceof TZChip) {
         this.chipData = await this.chip.getData()
-      } else if (this.chip instanceof RTCChip || this.chip instanceof TZChip) {
-        this.chipData = await this.chip.isSet()
       }
     },
     chipDisconnected () {
@@ -79,7 +77,7 @@ new Vue({
   },
   computed: {
     chipDataHtml: function (): string {
-      if (!this.chipData || typeof this.chipData === 'boolean' || !this.chipData.validStructure) {
+      if (! (this.chipData instanceof DataChipObject) || !this.chipData.validStructure) {
         return ''
       }
       return SyntaxHighlight(this.chipData.machineData)
