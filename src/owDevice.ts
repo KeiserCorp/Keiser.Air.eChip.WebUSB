@@ -509,62 +509,75 @@ export class OWDevice {
       }
     } catch (error) {
       Logger.error('Read All Failed: ' + error.message)
-      await this.deviceReset()
+      throw error
     } finally {
+      await this.deviceReset()
       releaseMutex()
       Logger.info('Read All Completed: ' + Math.round(performance.now() - start) + 'ms')
     }
   }
 
-  async writeTZOffset (chipRom: Uint8Array, data: Uint8Array, offMSB: number, offLSB: number) {
+  async tzChipWrite (chipRom: Uint8Array, tzString: Uint8Array, tzOffset: Uint8Array) {
+    const releaseMutex = await this.mutex.acquire()
+    const start = performance.now()
     try {
-      await this.reset()
-      await this.romCommand(chipRom, false)
-
-      await this.write(new Uint8Array([0x0F, offMSB, offLSB, ...data]), true)
-
-      await this.reset()
-
-      await this.romCommand(chipRom, false)
-      await this.write(new Uint8Array([0xAA, offMSB, offLSB, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]), false)
-
-      await this.read(1)
-
-      let result = []
-      do {
-        result.push((await this.read(1))[0])
-      } while (result.length < 3)
-
-      let result2 = []
-      do {
-        result2.push((await this.read(1))[0])
-      } while (result2.length < 8)
-
-      if (result[2] !== 0x07) {
-        return false
-      }
-
-      await this.reset()
-
-      await this.romCommand(chipRom, false)
-      await this.write(new Uint8Array([0x55,...result]), true)
+      await this.tzChipWriteOffset(chipRom, tzString, 0x00, 0x00)
+      await this.tzChipWriteOffset(chipRom, tzOffset, 0x08, 0x00)
     } catch (error) {
-      await this.writeTZOffset(chipRom, data, offMSB, offLSB)
+      Logger.error('TZ Write Failed: ' + error.message)
+      throw error
+    } finally {
+      await this.deviceReset()
+      releaseMutex()
+      Logger.info('TZ Write Completed: ' + Math.round(performance.now() - start) + 'ms')
     }
-    await this.deviceReset()
-    return true
   }
 
-  async writeRTC (chipRom: Uint8Array, data: Uint8Array) {
+  private async tzChipWriteOffset (chipRom: Uint8Array, data: Uint8Array, offMSB: number, offLSB: number) {
+    await this.reset()
+    await this.romCommand(chipRom, false)
+    await this.write(new Uint8Array([0x0F, offMSB, offLSB, ...data]), true)
+
+    await this.reset()
+    await this.romCommand(chipRom, false)
+    await this.write(new Uint8Array([0xAA, offMSB, offLSB, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]), false)
+    await this.read(1)
+
+    let auth = []
+    do {
+      auth.push((await this.read(1))[0])
+    } while (auth.length < 3)
+
+    let crc = []
+    do {
+      crc.push((await this.read(1))[0])
+    } while (crc.length < 8)
+
+    if (crc[2] !== 0x07) {
+      return false
+    }
+
+    await this.reset()
+    await this.romCommand(chipRom, false)
+    await this.write(new Uint8Array([0x55,...auth]), true)
+  }
+
+  async rtcChipWrite (chipRom: Uint8Array, data: Uint8Array) {
+    const releaseMutex = await this.mutex.acquire()
+    const start = performance.now()
     try {
       await this.reset()
       await this.romCommand(chipRom, false)
-      const writeCommand = new Uint8Array([0x99])
-      await this.write(writeCommand, true)
+      await this.write(new Uint8Array([0x99]), true)
       await this.write(data, false)
       await this.reset()
     } catch (error) {
-      await this.writeRTC(chipRom, data)
+      Logger.error('RTC Write Failed: ' + error.message)
+      throw error
+    } finally {
+      await this.deviceReset()
+      releaseMutex()
+      Logger.info('RTC Write Completed: ' + Math.round(performance.now() - start) + 'ms')
     }
   }
 }
