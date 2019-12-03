@@ -1,19 +1,20 @@
 import { Logger } from './logger'
 import crc81wire from 'crc/crc81wire'
 import { Mutex } from 'async-mutex'
+import { TimeoutStrategy, Policy, TaskCancelledError } from 'cockatiel'
 
 const BULK_SIZE = 64
 const SEARCH_INTERVAL = 500
 const TIMEOUT_INTERVAL = 200
+const RETRY_ATTEMPTS = 3
 const ALT_INTERFACE = 1
 
 const isValidKeyId = (keyId: Uint8Array) => {
   return keyId[0] === 0x0C && keyId[7] !== 0
 }
 
-const timeoutPromise: () => Promise<void> = () => {
-  return new Promise(r => setTimeout(() => { r() }, TIMEOUT_INTERVAL))
-}
+const timeoutPolicy = Policy.timeout(TIMEOUT_INTERVAL, TimeoutStrategy.Cooperative)
+const timeoutRetryPolicy = Policy.handleType(TaskCancelledError).retry().attempts(RETRY_ATTEMPTS)
 
 class StateRegister {
   detectKey: boolean
@@ -83,7 +84,7 @@ export class OWDevice {
   async startSearch () {
     if (!this.searching) {
       this.searching = true
-      this.awaitKey()
+      void this.awaitKey()
     }
   }
 
@@ -94,24 +95,26 @@ export class OWDevice {
       if (this.usbDevice.configuration && this.usbDevice.configuration.interfaces[0]) {
         await this.usbDevice.releaseInterface(this.usbDevice.configuration.interfaces[0].interfaceNumber)
       }
-    } catch (error) { console.log('Close: ' + error)/*Ignore error*/ }
+    } catch (error) {
+      console.warn(`Close Error: ${error}`)
+    }
     releaseMutex()
   }
 
-  private awaitKey () {
-    setTimeout(async () => {
-      if (this.searching) {
-        let releaseMutex = await this.mutex.acquire()
-        try {
-          await Promise.race([
-            this.keySearch(),
-            timeoutPromise()
-          ])
-        } catch (error) { console.log('Await: ' + error)/*Ignore error*/}
-        releaseMutex()
-        this.awaitKey()
-      }
-    }, SEARCH_INTERVAL)
+  private async awaitKey () {
+    if (!this.searching) {
+      return
+    }
+
+    let releaseMutex = await this.mutex.acquire()
+    try {
+      await timeoutPolicy.execute(async () => this.keySearch())
+    } catch (error) {
+      console.warn(`Await Key Error: ${error}`)
+      await this.deviceReset()
+    }
+    releaseMutex()
+    setTimeout(async () => void this.awaitKey(), SEARCH_INTERVAL)
   }
 
   private async keySearch () {
@@ -188,18 +191,22 @@ export class OWDevice {
   }
 
   private async deviceReset () {
-    await this.usbDevice.reset()
-    let res = await this.usbDevice.controlTransferOut({
-      requestType: 'vendor',
-      recipient: 'device',
-      request: 0x00,
-      value: 0x00,
-      index: 0x00
+    await timeoutRetryPolicy.execute(async () => {
+      await this.usbDevice.reset()
+      let res = await timeoutPolicy.execute(async () => {
+        return this.usbDevice.controlTransferOut({
+          requestType: 'vendor',
+          recipient: 'device',
+          request: 0x00,
+          value: 0x00,
+          index: 0x00
+        })
+      })
+      if (res.status !== 'ok') {
+        throw new Error('1-Wire Device reset failed.')
+      }
+      await this.bufferClear()
     })
-    if (res.status !== 'ok') {
-      throw new Error('1-Wire Device reset failed.')
-    }
-    await this.bufferClear()
   }
 
   private async write (data: Uint8Array, clearWire: boolean = false) {
@@ -381,10 +388,8 @@ export class OWDevice {
     const offsetMSB = (offset & 0xFF)
     const offsetLSB = (offset & 0xFF00) >> 8
     const endingOffset = data.length - 1
-    console.log('Starting Write')
 
     const keyWriteToScratch = async (keyRom: Uint8Array, offset: number = 0, data: Uint8Array = new Uint8Array(0), overdrive: boolean = false) => {
-      console.log(`Write: ${offset} - ${data.byteLength}`)
       const keyWriteData = async (data: Uint8Array, offset: number = 0) => {
         const size = Math.min(BULK_SIZE, data.length - offset)
         const sendData = new Uint8Array(size)
@@ -413,7 +418,7 @@ export class OWDevice {
       }
     }
 
-    await this.setSpeed(false)
+    await this.setSpeed(overdrive)
     await keyWriteToScratch(keyRom, offset, data, overdrive)
     await this.reset()
     await this.romMatch(keyRom, overdrive)
@@ -490,7 +495,7 @@ export class OWDevice {
     }
 
     const keyReadAllSteps = async (overdrive: boolean) => {
-      await this.setSpeed(false)
+      await this.setSpeed(overdrive)
       await this.reset()
       await this.romMatch(keyRom, overdrive)
       const writeCommand = new Uint8Array([0xF0, 0x00, 0x00])
