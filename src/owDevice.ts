@@ -552,9 +552,16 @@ export class OWDevice {
     do {
       crc.push((await this.read(1))[0])
     } while (crc.length < 8)
+    let scratchData = new Uint8Array(crc)
 
-    if (crc[2] !== 0x07) {
-      return false
+    for (let i = 0; i < scratchData.length; i++) {
+      if (scratchData[i] !== data[i]) {
+        throw Error('Scratchpad data does not match input data')
+      }
+    }
+
+    if (auth[2] !== 0x07) {
+      throw Error('Copy to scratchpad failed')
     }
 
     await this.reset()
