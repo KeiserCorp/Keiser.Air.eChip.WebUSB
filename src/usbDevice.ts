@@ -1,4 +1,5 @@
 import { nodeToWeb } from './transform'
+import { WebUSBDevice, USBConnectionEvent } from '../types/w3c-web-usb'
 
 export class USBDevice {
   private readonly vendorId: number

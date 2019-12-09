@@ -1,8 +1,13 @@
 import { Logger } from './logger'
-import { Chip, DataChip, RTCChip, TZChip, BaseChip } from './chips'
+import { Chip } from './chips'
+import { DataChip } from './dataChip'
+import { RTCChip } from './rtcChip'
+import { TZChip } from './tzChip'
+import { BaseChip } from './baseChip'
 import { OWDevice } from './owDevice'
 import { getChipType, ChipType } from './chipLib'
 import { TypedEvent, Listener, Disposable } from './typedEvent'
+import { WebUSBDevice } from '../types/w3c-web-usb'
 
 export class ChipReader {
   readonly claimed: Promise<boolean>

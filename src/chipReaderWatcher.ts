@@ -1,6 +1,7 @@
 import { USBDevice } from './usbDevice'
 import { ChipReader } from './chipReader'
 import { TypedEvent, Listener, Disposable } from './typedEvent'
+import { WebUSBDevice } from '../types/w3c-web-usb'
 
 const CHIP_READER_VENDOR_ID = 0x04FA
 const CHIP_READER_PRODUCT_ID = 0x2490

@@ -2,6 +2,7 @@ import { Logger } from './logger'
 import crc81wire from 'crc/crc81wire'
 import { Mutex } from 'async-mutex'
 import { TimeoutStrategy, Policy, TaskCancelledError } from 'cockatiel'
+import { WebUSBDevice, USBEndpoint, USBInTransferResult } from '../types/w3c-web-usb'
 
 const BULK_SIZE = 64
 const SEARCH_INTERVAL = 500

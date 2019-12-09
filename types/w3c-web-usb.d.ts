@@ -10,14 +10,14 @@ type USBRequestType = "standard" | "class" | "vendor"
 type USBRecipient = "device" | "interface" | "endpoint" | "other"
 type USBTransferStatus = "ok" | "stall" | "babble"
 
-interface USBEndpoint {
+export interface USBEndpoint {
     readonly endpointNumber: number
     readonly direction: USBDirection
     readonly type: USBEndpointType
     readonly packetSize: number
 }
 
-interface USBControlTransferParameters {
+export interface USBControlTransferParameters {
     requestType: USBRequestType
     recipient: USBRecipient
     request: number
@@ -25,7 +25,7 @@ interface USBControlTransferParameters {
     index: number
 }
 
-interface USBDeviceFilter {
+export interface USBDeviceFilter {
     vendorId?: number
     productId?: number
     classCode?: number
@@ -34,11 +34,11 @@ interface USBDeviceFilter {
     serialNumber?: string
 }
 
-interface USBDeviceRequestOptions {
+export interface USBDeviceRequestOptions {
     filters: USBDeviceFilter[]
 }
 
-interface USBConnectionEventInit extends EventInit {
+export interface USBConnectionEventInit extends EventInit {
     device: WebUSBDevice
 }
 
@@ -106,7 +106,7 @@ declare class USBIsochronousOutTransferResult {
     readonly packets: USBIsochronousOutTransferPacket[]
 }
 
-declare class WebUSB extends EventTarget {
+export declare class WebUSB extends EventTarget {
     onconnect(): (this: this, ev: Event) => any
     ondisconnect(): (this: this, ev: Event) => any
     getDevices(): Promise<WebUSBDevice[]>
@@ -115,7 +115,7 @@ declare class WebUSB extends EventTarget {
     addEventListener(type: "connect" | "disconnect", listener: EventListener, useCapture?: boolean): void
 }
 
-declare class WebUSBDevice {
+export declare class WebUSBDevice {
     readonly usbVersionMajor: number
     readonly usbVersionMinor: number
     readonly usbVersionSubminor: number
@@ -149,6 +149,8 @@ declare class WebUSBDevice {
     reset(): Promise<void>
 }
 
-interface Navigator {
-    readonly usb?: WebUSB
+declare global {
+  interface Navigator {
+      readonly usb?: WebUSB
+  }
 }

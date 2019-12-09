@@ -1,5 +1,6 @@
 import { NodeUSBDevice, ConfigDescriptor, InterfaceDescriptor, Interface, Endpoint, LibUSBException, InEndpoint, OutEndpoint } from '../types/node-usb'
 import { WebUSBConnectionEvent } from './typedEvent'
+import { WebUSBDevice, USBControlTransferParameters, USBInTransferResult, USBOutTransferResult, USBInterface, USBAlternateInterface, USBConfiguration, USBRequestType, USBDirection, USBEndpoint } from '../types/w3c-web-usb'
 
 class ConvertedUSBDevice {
   private nodeUsbDevice: NodeUSBDevice

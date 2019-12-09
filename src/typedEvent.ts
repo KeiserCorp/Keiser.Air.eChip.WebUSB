@@ -1,3 +1,5 @@
+import { WebUSBDevice, USBConnectionEventInit } from '../types/w3c-web-usb'
+
 export interface Listener<T> {
   (event: T): any
 }
