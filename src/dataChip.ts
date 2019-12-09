@@ -2,7 +2,7 @@
 import { BaseChip } from './baseChip'
 import { OWDevice } from './owDevice'
 import { DataChipObject, DataChipBuilder, MachineObject } from './chipLib'
-import { Listener, Disposable } from './typedEvent'
+import { TypedEvent, Listener, Disposable } from './typedEvent'
 import { TimeoutStrategy, Policy } from 'cockatiel'
 
 const TIMEOUT_INTERVAL = 20000
@@ -11,69 +11,59 @@ const RETRY_ATTEMPTS = 2
 const timeoutPolicy = Policy.timeout(TIMEOUT_INTERVAL, TimeoutStrategy.Cooperative)
 const retryPolicy = Policy.handleAll().retry().attempts(RETRY_ATTEMPTS)
 
-const invalidResultGenerator = () => Promise.resolve(new DataChipObject())
 const compareResults = (srcData: Array<Uint8Array>, resData: Array<Uint8Array>) => {
   return srcData.every((page, pageIndex) => page.every((byte, index) => byte === resData[pageIndex][index]))
 }
 
 export class DataChip extends BaseChip {
-  protected data: Promise<DataChipObject>
+  protected chipData: DataChipObject
+  protected onDataEvent = new TypedEvent<DataChipObject>()
 
   constructor (chipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(chipId, owDevice, onDisconnect)
-    this.data = this.loadData()
+    this.chipData = new DataChipObject()
+    void (async () => this.setChipData(await this.loadData()))()
   }
 
-  async getData () {
-    return this.data
+  get data () {
+    return this.chipData
+  }
+
+  onData (listener: Listener<DataChipObject>) {
+    return this.onDataEvent.on(listener)
+  }
+
+  protected setChipData (data: DataChipObject) {
+    this.chipData = data
+    this.onDataEvent.emit(data)
   }
 
   async clearData () {
-    let newData = DataChipBuilder({})
-    await retryPolicy.execute(async () => {
-      await timeoutPolicy.execute(async () => this.performClearData(newData))
-    })
-  }
-
-  private async performClearData (newData: Uint8Array[]) {
-    try {
-      let oldData = (await this.data).rawData
-      await this.owDevice.dataChipWriteDiff(this.chipId, newData, oldData, false)
-    } catch (error) {
-      try {
-        await this.owDevice.dataChipWriteAll(this.chipId, newData, false)
-      } catch (error) {
-        this.data = invalidResultGenerator()
-        throw error
-      }
-    }
-    await (this.data = this.loadData())
-    const resultsMatch = compareResults(newData, (await this.data).rawData)
-    if (!resultsMatch) {
-      throw new Error('Write was unsuccesful. Data targets do not match.')
-    }
+    await this.setData({})
   }
 
   async setData (machines: { [index: string]: MachineObject }) {
     let newData = DataChipBuilder(machines)
     await retryPolicy.execute(async () => {
-      await timeoutPolicy.execute(async () => this.performSetData(newData))
+      await timeoutPolicy.execute(async () => {
+        let oldData = this.data.rawData
+        try {
+          await this.owDevice.dataChipWriteDiff(this.chipId, newData, oldData, false)
+        } catch (error) {
+          try {
+            await this.owDevice.dataChipWriteAll(this.chipId, newData, false)
+          } catch (error) {
+            this.setChipData(new DataChipObject())
+            throw error
+          }
+        }
+        this.setChipData(await this.loadData())
+        const resultsMatch = compareResults(newData, this.data.rawData)
+        if (!resultsMatch) {
+          throw new Error('Write was unsuccesful. Data targets do not match.')
+        }
+      })
     })
-  }
-
-  async performSetData (newData: Uint8Array[]) {
-    let oldData = (await this.data).rawData
-    try {
-      await this.owDevice.dataChipWriteDiff(this.chipId, newData, oldData, false)
-    } catch (error) {
-      this.data = invalidResultGenerator()
-      throw error
-    }
-    await (this.data = this.loadData())
-    const resultsMatch = compareResults(newData, (await this.data).rawData)
-    if (!resultsMatch) {
-      throw new Error('Write was unsuccesful. Data targets do not match.')
-    }
   }
 
   private async loadData () {

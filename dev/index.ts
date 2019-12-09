@@ -1,7 +1,8 @@
 import Vue from 'vue'
 import ChipReaderWatcher from '../src/chipReaderWatcher'
 import { ChipReader } from '../src/chipReader'
-import { Chip, DataChip, RTCChip, TZChip } from '../src/chips'
+import { Chip } from '../src/chips'
+import { DataChip } from '../src/dataChip'
 import { ChipObject, DataChipObject } from '../src/chipLib'
 import SyntaxHighlight from './syntax'
 import { SET_2 } from './test'
@@ -44,9 +45,7 @@ new Vue({
     async chipDetected (chip: Chip) {
       this.chip = chip
       this.chip.onDisconnect(this.chipDisconnected)
-      if (this.chip instanceof DataChip || this.chip instanceof RTCChip || this.chip instanceof TZChip) {
-        this.chipData = await this.chip.getData()
-      }
+      this.chip.onData(data => this.chipData = data)
     },
     chipDisconnected () {
       this.chip = null
@@ -57,7 +56,6 @@ new Vue({
         this.chipData = null
         try {
           await this.chip.setData(SET_2)
-          this.chipData = await this.chip.getData()
         } catch (error) {
           console.error(error.message)
         }
@@ -68,7 +66,6 @@ new Vue({
         this.chipData = null
         try {
           await this.chip.clearData()
-          this.chipData = await this.chip.getData()
         } catch (error) {
           console.error(error.message)
         }
