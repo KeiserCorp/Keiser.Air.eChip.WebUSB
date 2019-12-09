@@ -61,7 +61,7 @@ chipReader.onChipDetect(async (chip) => {
 
 The `ChipReader` object also has an `onChipDetect()` method which will alert when a valid chip has been placed into the reader. The event passes in a `Chip` object that can be used to interact with the chip data directly. Just like the `ChipReaderWatcher.onConnect()` method, the `ChipReader.onChipDetect()` method can be called multiple times for multiple chips all being handled concurrently. Once a chip is disconnected, the `Chip` object is disposed and cannot be reused.
 
-Full example usage:
+### Full example usage:
 ```ts
 import ChipReaderWatcher from '@keiser/echip-webusb'
 
