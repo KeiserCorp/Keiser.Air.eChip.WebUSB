@@ -33,6 +33,6 @@ jobs:
         SLACK_USERNAME: 'GitHub Actions'
         SLACK_CHANNEL: deployment
         SLACK_COLOR: 'good'
-        SLACK_ICON: ':aws-bot:'
+        SLACK_ICON: ':github:'
         SLACK_TITLE: 'Publish Complete'
         SLACK_MESSAGE: 'Successfully published `echip-webusb`'
