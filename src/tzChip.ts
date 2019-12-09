@@ -15,15 +15,10 @@ const getTzStr = () => {
 }
 
 export class TZChip extends BaseChip {
-  private data: Promise<ChipObject>
 
   constructor (chipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(chipId, owDevice, onDisconnect)
-    this.data = this.setTZOffset()
-  }
-
-  async getData () {
-    return this.data
+    void (async () => this.setChipData(await this.setTZOffset()))()
   }
 
   async setTZOffset () {

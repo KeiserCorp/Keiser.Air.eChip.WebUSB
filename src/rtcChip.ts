@@ -11,15 +11,10 @@ const timeoutPolicy = Policy.timeout(TIMEOUT_INTERVAL, TimeoutStrategy.Cooperati
 const retryPolicy = Policy.handleAll().retry().attempts(RETRY_ATTEMPTS)
 
 export class RTCChip extends BaseChip {
-  private data: Promise<ChipObject>
 
   constructor (chipId: Uint8Array, owDevice: OWDevice, onDisconnect: (listener: Listener<null>) => Disposable) {
     super(chipId, owDevice, onDisconnect)
-    this.data = this.setRTC()
-  }
-
-  async getData () {
-    return this.data
+    void (async () => this.setChipData(await this.setRTC()))()
   }
 
   async setRTC () {
