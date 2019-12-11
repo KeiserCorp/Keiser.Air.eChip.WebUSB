@@ -26,13 +26,25 @@ jobs:
       run: |
         npm ci
         npm run push
-    - name: Notifying
+    - name: Notifying Success
+      if: success()
       uses: rtCamp/action-slack-notify@v1.0.0
       env:
         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         SLACK_USERNAME: 'GitHub Actions'
         SLACK_CHANNEL: deployment
         SLACK_COLOR: 'good'
-        SLACK_ICON: ':github:'
-        SLACK_TITLE: 'Publish Complete'
-        SLACK_MESSAGE: 'Successfully published `echip-webusb`'
+        SLACK_ICON: 'github'
+        SLACK_TITLE: 'Keiser.Air.eChip.WebUSB'
+        SLACK_MESSAGE: 'Build Success'
+    - name: Notifying Success
+      if: failure()
+      uses: rtCamp/action-slack-notify@v1.0.0
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_USERNAME: 'GitHub Actions'
+        SLACK_CHANNEL: deployment
+        SLACK_COLOR: 'bad'
+        SLACK_ICON: 'github'
+        SLACK_TITLE: 'Keiser.Air.eChip.WebUSB'
+        SLACK_MESSAGE: 'Build Failure'
