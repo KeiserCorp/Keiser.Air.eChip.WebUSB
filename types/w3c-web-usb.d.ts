@@ -42,13 +42,13 @@ export interface USBConnectionEventInit extends EventInit {
     device: WebUSBDevice
 }
 
-declare class USBConfiguration {
+export declare class USBConfiguration {
     readonly configurationValue: number
     readonly configurationName?: string
     readonly interfaces: USBInterface[]
 }
 
-declare class USBInterface {
+export declare class USBInterface {
     constructor(configuration: USBConfiguration, interfaceNumber: number)
     readonly interfaceNumber: number
     readonly alternate: USBAlternateInterface
@@ -56,7 +56,7 @@ declare class USBInterface {
     readonly claimed: boolean
 }
 
-declare class USBAlternateInterface {
+export declare class USBAlternateInterface {
     constructor(deviceInterface: USBInterface, alternateSetting: number)
     readonly alternateSetting: number
     readonly interfaceClass: number
@@ -66,42 +66,42 @@ declare class USBAlternateInterface {
     readonly endpoints: USBEndpoint[]
 }
 
-declare class USBInTransferResult {
+export declare class USBInTransferResult {
     constructor(status: USBTransferStatus, data?: DataView)
     readonly data?: DataView
     readonly status?: USBTransferStatus
 }
 
-declare class USBOutTransferResult {
+export declare class USBOutTransferResult {
     constructor(status: USBTransferStatus, bytesWriten?: number)
     readonly bytesWritten: number
     readonly status: USBTransferStatus
 }
 
-declare class USBIsochronousInTransferPacket {
+export declare class USBIsochronousInTransferPacket {
     constructor(status: USBTransferStatus, data?: DataView)
     readonly data?: DataView
     readonly status?: USBTransferStatus
 }
 
-declare class USBIsochronousInTransferResult {
+export declare class USBIsochronousInTransferResult {
     constructor(packets: USBIsochronousInTransferPacket[], data?: DataView)
     readonly data?: DataView
     readonly packets: USBIsochronousInTransferPacket[]
 }
 
-declare class USBIsochronousOutTransferPacket {
+export declare class USBIsochronousOutTransferPacket {
     constructor(status: USBTransferStatus, bytesWritten?: number)
     readonly bytesWritten: number
     readonly status: USBTransferStatus
 }
 
-declare class USBConnectionEvent extends Event {
+export declare class USBConnectionEvent extends Event {
     constructor(type: string, eventInitDict: USBConnectionEventInit)
     readonly device: WebUSBDevice
 }
 
-declare class USBIsochronousOutTransferResult {
+export declare class USBIsochronousOutTransferResult {
     constructor(packets: USBIsochronousOutTransferPacket[])
     readonly packets: USBIsochronousOutTransferPacket[]
 }
