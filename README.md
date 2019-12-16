@@ -9,7 +9,7 @@ Required Hardware: [USB to 1-Wire/iButton Adapter (DS9490)](https://www.maximint
 Required Drivers: [1-Wire/iButton Drivers for Windows](https://www.maximintegrated.com/en/products/ibutton/software/tmex/download_drivers.cfm)
 
 ## Installation
-Install with [NPM](https://www.npmjs.com/): `npm install @keiser/echip-webusb`
+Install with [npm](https://www.npmjs.com/): `npm install @keiser/echip-webusb`
 
 ## Usage
 
