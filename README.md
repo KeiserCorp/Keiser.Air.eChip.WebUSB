@@ -146,11 +146,11 @@ The `BaseChip` instance is passed into the `onChipDetect` callback function and 
 | `onDisconnect(Listener<null>): Disposable` | Adds an event listener for when this chip becomes disconnected. The instance will be disposed following this event. |
 | `onData(Listener<ChipObject>): Disposable` | Adds an event listener for when the chip data has changed. |
 
-## TZChip and RTCChip
+### TZChip and RTCChip
 
 The `TZChip` and `RTCChip` are class extensions on the `BaseChip` class. They add no additional properties or methods, but allow the identification of chip type and will perform chip set operations automatically when detected. An event issued on the `onData` event indicates that the chips data has been successfully updated.
 
-## DataChip
+### DataChip
 
 The `DataChip` class extension on the `BaseChip` class adds additional properties and methods specific to the data chip.
 
