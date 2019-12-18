@@ -55,7 +55,9 @@ The `ChipReader` object has an `onDisconnect()` method which will alert when the
 ```ts
 chipReader.onChipDetect(async (chip) => {
   console.log('Chip Connected: ' + chip.id)
-  console.log(await chip.getData())
+  if (chip instanceof DataChip) {
+    chip.onData(data => console.log(data))
+  }
 })
 ```
 
@@ -63,7 +65,7 @@ The `ChipReader` object also has an `onChipDetect()` method which will alert whe
 
 ### Full example usage:
 ```ts
-import ChipReaderWatcher from '@keiser/echip-webusb'
+import ChipReaderWatcher, { DataChip } from '@keiser/echip-webusb'
 
 document.addEventListener('DOMContentLoaded', event => {
   const connectButton = document.querySelector('#connect') as HTMLInputElement
@@ -83,7 +85,9 @@ document.addEventListener('DOMContentLoaded', event => {
 
     chipReader.onChipDetect(async (chip) => {
       console.log('Chip Connected: ' + chip.id)
-      chip.onData(data => console.log(data))
+      if (chip instanceof DataChip) {
+        chip.onData(data => console.log(data))
+      }
     })
 
     chipReader.onDisconnect(() => {
