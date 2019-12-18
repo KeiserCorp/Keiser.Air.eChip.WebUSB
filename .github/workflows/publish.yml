@@ -34,10 +34,10 @@ jobs:
         SLACK_USERNAME: 'GitHub Actions'
         SLACK_CHANNEL: deployment
         SLACK_COLOR: 'good'
-        SLACK_ICON: 'github'
+        SLACK_ICON: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'
         SLACK_TITLE: 'Keiser.Air.eChip.WebUSB'
         SLACK_MESSAGE: 'Build Success'
-    - name: Notifying Success
+    - name: Notifying Failure
       if: failure()
       uses: rtCamp/action-slack-notify@v1.0.0
       env:
@@ -45,6 +45,6 @@ jobs:
         SLACK_USERNAME: 'GitHub Actions'
         SLACK_CHANNEL: deployment
         SLACK_COLOR: 'bad'
-        SLACK_ICON: 'github'
+        SLACK_ICON: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'
         SLACK_TITLE: 'Keiser.Air.eChip.WebUSB'
         SLACK_MESSAGE: 'Build Failure'
