@@ -22,10 +22,6 @@ export class USBDevice {
     void this.checkDevices()
   }
 
-  get isConnected () {
-    return this.connectedDevices.length > 0
-  }
-
   async start () {
     await this.requestPermission()
   }
