@@ -70,7 +70,7 @@ export class OWDevice {
     const usbConfiguration = this.usbDevice.configurations[0]
     const usbInterface = usbConfiguration.interfaces[0]
     try {
-      if (typeof this.usbDevice.configuration === 'undefined' || this.usbDevice.configuration.configurationValue !== usbConfiguration.configurationValue) {
+      if (!this.usbDevice.configuration || this.usbDevice.configuration.configurationValue !== usbConfiguration.configurationValue) {
         await this.usbDevice.selectConfiguration(usbConfiguration.configurationValue)
       }
       await this.usbDevice.claimInterface(usbInterface.interfaceNumber)
