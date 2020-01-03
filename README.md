@@ -16,10 +16,6 @@ Install with [npm](https://www.npmjs.com/): `npm install @keiser/echip-webusb`
 Import singleton instance from module using preferred module loading technique.
 ```ts
 import ChipReaderWatcher from '@keiser/echip-webusb'
-
-if (ChipReaderWatcher.isConnected) {
-  console.log('Chip Reader Connected 😄')
-}
 ```
 
 The `ChipReaderWatcher` handles permissions and USB connection events. On first load, the browser will not have provided a grant to the site to access the USB device, so the `ChipReaderWatcher.start()` method must be called by an event that originates from a user action. This may only be required once on the first visit to the site, or it may be required each time the site is loaded based on browser vendors preferred implementation.
