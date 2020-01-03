@@ -103,11 +103,6 @@ document.addEventListener('DOMContentLoaded', event => {
 
 The `ChipReaderWatcher` is a singleton class which handles the USB device monitoring and permissions handling. There can be only one `ChipReaderWatcher` instance created within a `window` scope, so the library instantiates the class during import and preserves a single instance for all imports.
 
-#### Properties
-| Name | Usage |
-| ---- | ----- |
-| `isConnected: boolean` | Indicates whether a Chip Reader device is connected |
-
 #### Methods
 | Name | Usage |
 | ---- | ----- |
