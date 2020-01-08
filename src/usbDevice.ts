@@ -30,7 +30,7 @@ export class USBDevice {
     }
   }
 
-  get browserSupported() {
+  get browserSupported () {
     return this.supported
   }
 

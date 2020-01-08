@@ -10,11 +10,12 @@
     "**/dist": true,
     "**/node_modules": true
   },
-  "standard.enable": false,
   "typescript.format.enable": false,
   "typescript.validate.enable": true,
   "typescript.format.insertSpaceAfterConstructor": true,
   "typescript.format.insertSpaceBeforeFunctionParenthesis": true,
-  "tslint.enable": true,
-  "tslint.autoFixOnSave": true
+  "tslint.jsEnable": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.tslint": true
+  }
 }
