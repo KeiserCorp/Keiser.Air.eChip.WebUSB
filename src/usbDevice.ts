@@ -6,6 +6,7 @@ export class USBDevice {
   private readonly productId: number
   private initialized: boolean = false
   protected connectedDevices: Array<WebUSBDevice> = []
+  private supported: boolean = false
 
   constructor (vendorId: number, productId: number) {
     this.vendorId = vendorId
@@ -16,17 +17,21 @@ export class USBDevice {
     if (!this.initialized) {
       if (typeof navigator.usb === 'undefined') {
         if (typeof window.node_usb === 'undefined') {
-          throw new Error('Web-USB not supported in this browser')
+          console.log('Web-USB not supported in this browser')
         }
       } else {
+        this.supported = true
         navigator.usb.addEventListener('connect', event => { void this.attached(event as USBConnectionEvent) })
         navigator.usb.addEventListener('disconnect', event => { void this.detached(event as USBConnectionEvent) })
+        void this.checkDevices()
       }
-
-      void this.checkDevices()
 
       this.initialized = true
     }
+  }
+
+  get browserSupported() {
+    return this.supported
   }
 
   async start () {
