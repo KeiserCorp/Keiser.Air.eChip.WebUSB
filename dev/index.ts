@@ -45,7 +45,7 @@ new Vue({
     async chipDetected (chip: Chip) {
       this.chip = chip
       this.chip.onDisconnect(this.chipDisconnected)
-      this.chip.onData(data => this.chipData = data)
+      this.chip.onData((data: ChipObject) => this.chipData = data)
     },
     chipDisconnected () {
       this.chip = null

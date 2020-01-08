@@ -17,7 +17,7 @@ export class USBDevice {
     if (!this.initialized) {
       if (typeof navigator.usb === 'undefined') {
         if (typeof window.node_usb === 'undefined') {
-          console.log('Web-USB not supported in this browser')
+          this.notSupported()
         }
       } else {
         this.supported = true
@@ -28,6 +28,10 @@ export class USBDevice {
 
       this.initialized = true
     }
+  }
+
+  protected notSupported () {
+    console.log('Web-USB not supported in this browser')
   }
 
   get browserSupported () {
@@ -44,7 +48,7 @@ export class USBDevice {
     }
 
     if (typeof navigator.usb === 'undefined') {
-      throw new Error('Web-USB not supported in this browser')
+      return this.notSupported()
     }
 
     let device
@@ -69,7 +73,7 @@ export class USBDevice {
     }
 
     if (typeof navigator.usb === 'undefined') {
-      throw new Error('Web-USB not supported in this browser')
+      return this.notSupported()
     }
 
     let devices = await navigator.usb.getDevices()
