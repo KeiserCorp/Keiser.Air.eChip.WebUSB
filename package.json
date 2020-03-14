@@ -27,7 +27,7 @@
     "start": "npm run dev",
     "stage": "webpack --config webpack/stage.config.js && http-server ./stage",
     "build": "webpack --config webpack/prod.config.js",
-    "push": "npm run build && cd ./dist && npm publish"
+    "release": "npm run build && cd ./dist && npm publish"
   },
   "devDependencies": {
     "@types/node": "^13.1.4",
