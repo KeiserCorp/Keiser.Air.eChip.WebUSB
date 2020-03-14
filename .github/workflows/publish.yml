@@ -28,11 +28,19 @@ jobs:
         if: steps.check.outputs.changed == 'true'
         run: npm ci
 
-      - name: Build and Push
+      - name: Build
+        if: steps.check.outputs.changed == 'true'
+        run: npm run build
+
+      - name: Publish
         if: steps.check.outputs.changed == 'true'
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm run release
+        run: |
+          cd ./dist
+          echo //registry.npmjs.org/:_authToken=${NPM_TOKEN} > .npmrc
+          npm publish
+          rm .npmrc
       
       - name: Create Release
         if: steps.check.outputs.changed == 'true'
