@@ -49,7 +49,7 @@ jobs:
         with:
           token: ${{ secrets.SLACK_BOT_TOKEN }}
           status: ${{ job.status }}
-          action: Release
+          action: Publish
           channel: '#deployment'
           version: ${{ steps.check.outputs.version }}
     

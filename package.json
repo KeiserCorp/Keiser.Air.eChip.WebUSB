@@ -1,6 +1,6 @@
 {
   "name": "@keiser/echip-webusb",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "description": "Keiser Air eChip WebUSB Library",
   "keywords": [
     "keiser",
