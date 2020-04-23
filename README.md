@@ -12,7 +12,6 @@ Required Drivers: [1-Wire/iButton Drivers for Windows](https://www.maximintegrat
 Install with [npm](https://www.npmjs.com/): `npm install @keiser/echip-webusb`
 
 ## Usage
-
 Import singleton instance from module using preferred module loading technique.
 ```ts
 import ChipReaderWatcher from '@keiser/echip-webusb'
@@ -93,10 +92,12 @@ document.addEventListener('DOMContentLoaded', event => {
 })
 ```
 
+## eChip Capabilities
+A single eChip is capable of holding 200 workout sets worth of data from 24 distinct machines. If the eChip is full, machines will replace the oldest workout record on the eChip with new data. It is recommended to completely clear the eChip between uses and to only write the data required for targeting during the current workout session.
+
 ## API
 
 ### ChipReaderWatcher
-
 The `ChipReaderWatcher` is a singleton class which handles the USB device monitoring and permissions handling. There can be only one `ChipReaderWatcher` instance created within a `window` scope, so the library instantiates the class during import and preserves a single instance for all imports.
 
 #### Properties
@@ -112,7 +113,6 @@ The `ChipReaderWatcher` is a singleton class which handles the USB device monito
 | `stop(): Promise<void>` | Closes all active connections. |
 
 ### ChipReader
-
 The `ChipReader` instance is passed into the `onConnect` callback function and is the interface to the connected Chip Reader device.
 
 #### Properties
@@ -128,7 +128,6 @@ The `ChipReader` instance is passed into the `onConnect` callback function and i
 | `onDisconnect(Listener<null>): Disposable` | Adds an event listener for when this Chip Reader device becomes disconnected. The instance will be disposed following this event. |
 
 ### BaseChip
-
 The `BaseChip` instance is passed into the `onChipDetect` callback function and is the interface to the connected chip device. There are several different extensions to the base `BaseChip` object that can identified by doing a `instanceOf` check or looking at the `type` property.
 
 #### Properties
@@ -147,11 +146,9 @@ The `BaseChip` instance is passed into the `onChipDetect` callback function and 
 | `onData(Listener<ChipObject>): Disposable` | Adds an event listener for when the chip data has changed. |
 
 ### TZChip and RTCChip
-
 The `TZChip` and `RTCChip` are class extensions on the `BaseChip` class. They add no additional properties or methods, but allow the identification of chip type and will perform chip set operations automatically when detected. An event issued on the `onData` event indicates that the chips data has been successfully updated.
 
 ### DataChip
-
 The `DataChip` class extension on the `BaseChip` class adds additional properties and methods specific to the data chip.
 
 #### Methods
@@ -238,7 +235,6 @@ interface MachineTestResult {
 ```
 
 ### Constants
-
 ```ts
 enum Precision {
   dec = 'dec',
@@ -273,4 +269,10 @@ enum ChipType {
 
 
 ## Copyright and License
-Copyright [Keiser Corporation](http://keiser.com/) under the [MIT license](LICENSE.md).
+Copyright © 2020 [Keiser Corporation](http://keiser.com/).
+
+The Keiser eChip WebUSB Library source code and library package are made available through the [MIT license](LICENSE.md).
+
+Using any of this library in connection with any Keiser eChip enabled equipment make you subject to the following agreements. Please read all documents in their entirety as they govern your use of the APIs.
+- [API Agreement](https://dev.keiser.com/api-agreement/)
+- [Brand Guidelines for Developers](https://dev.keiser.com/brand-guidelines/)
