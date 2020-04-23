@@ -1,9 +1,12 @@
 # Keiser Air eChip WebUSB Library
-![](https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB/workflows/Publish%20NPM/badge.svg?branch=production)
+![Publish](https://github.com/KeiserCorp/Keiser.Air.eChip.WebUSB/workflows/Publish/badge.svg)
 
 ## Project
-This library handles communication with the Chip USB reader using WebUSB.
+This library handles communication with the Keiser eChip as a means of collecting workout information from Keiser [Strength](https://www.keiser.com/fitness-equipment/strength-training) and [Functional](https://www.keiser.com/fitness-equipment/functional-training) equipment. The library is written in [TypeScript](https://www.typescriptlang.org) and supports modern browsers with [WebUSB support](https://caniuse.com/#feat=webusb).
 
+For additional information about this project visit the [Keiser Developer Zone](https://dev.keiser.com/air/echip/).
+
+## Requirements
 Required Hardware: [USB to 1-Wire/iButton Adapter (DS9490)](https://www.maximintegrated.com/en/products/ibutton/ibutton/DS9490.html)
 
 Required Drivers: [1-Wire/iButton Drivers for Windows](https://www.maximintegrated.com/en/products/ibutton/software/tmex/download_drivers.cfm)
